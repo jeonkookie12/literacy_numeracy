@@ -1,13 +1,15 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/authContext";
 import SchoolLogo from "../assets/a1es.svg";
 import DashboardIcon from "../assets/global/sidebar/dashboard.svg";
 import UsersIcon from "../assets/global/sidebar/status.svg";
 import ResourcesIcon from "../assets/global/sidebar/materials.svg";
-import AnalyticsIcon from "../assets/global/sidebar/open.svg";
 import LogoutIcon from "../assets/global/sidebar/logout.svg";
 import SidebarCloseIcon from "../assets/global/sidebar/close.svg";
-import { useAuth } from "../context/authContext";
+import InterventionIcon from "../assets/teacher/intervention_sched.svg";
+import AnalyticsIcon from "../assets/teacher/analytics.svg";
+//import ReportsIcon from "../assets/teacher/reports.svg";
 
 function Sidebar({ open, setOpen, setTitle }) {
   const navigate = useNavigate();
@@ -45,7 +47,10 @@ function Sidebar({ open, setOpen, setTitle }) {
         return [
           { label: "Dashboard", path: "/teacher-dashboard", icon: DashboardIcon },
           { label: "Class Masterlist", path: "/class-masterlist", icon: UsersIcon },
-          { label: "Learning Resources", path: "/teacher-resources", icon: ResourcesIcon },
+          { label: "Learning Resources", path: "/teacher-materials", icon: ResourcesIcon },
+          { label: "Intervention Schedule", path: "/intervention-schedule", icon: InterventionIcon },
+          { label: "Analytics", path: "/student-analytics", icon: AnalyticsIcon },
+         // { label: "Reports", path: "/"}
         ];
       case "admin":
       default:

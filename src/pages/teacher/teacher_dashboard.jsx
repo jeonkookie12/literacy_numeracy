@@ -68,7 +68,7 @@ function TeacherDashboard() {
             <input
               type="text"
               placeholder="Search here..."
-              className="border border-[#82B9F9] p-1.5 rounded-xl w-full pr-8"
+              className="border border-[#82B9F9] p-1.5 rounded-xl w-full pr-8 hover:bg-gray-100 transition-colors"
             />
             <img
               src={SearchIcon}
@@ -198,7 +198,7 @@ function TeacherDashboard() {
             <input
               type="text"
               placeholder="Search here..."
-              className="border border-[#82B9F9] p-1.5 rounded-xl w-full pr-8"
+              className="border border-[#82B9F9] p-1.5 rounded-xl w-full pr-8 hover:bg-gray-100 transition-colors"
             />
             <img
               src={SearchIcon}
@@ -272,7 +272,7 @@ function TeacherDashboard() {
         <div className="flex flex-col sm:flex-row justify-end items-center mt-3 gap-3">
           <div className="flex items-center">
             <span className="mr-2 text-xs sm:text-sm">Rows per page:</span>
-            <select className="border border-[#82B9F9] rounded-xl p-1 text-sm sm:text-base">
+            <select className="border border-[#82B9F9] rounded-xl p-1 text-xs sm:text-sm">
               <option value="10">10</option>
               <option value="30">30</option>
               <option value="50">50</option>

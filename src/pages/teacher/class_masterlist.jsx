@@ -49,7 +49,7 @@ function ClassMasterlist() {
     <div className="p-3 sm:p-4 lg:p-10 overflow-y-auto scrollable-container">
       {/* Class Masterlist Section */}
       <section className="bg-white rounded-xl p-3 sm:p-6 shadow-md">
-        <h2 className="text-gray-800 text-xl font-semibold mb-6 rounded-lg">Class Masterlist</h2>
+        <h2 className="text-gray-800 text-2xl font-semibold mb-6 rounded-lg">Class Masterlist</h2>
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
           <div className="relative w-full sm:w-1/4">
             <input

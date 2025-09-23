@@ -8,10 +8,12 @@ import Layout from './components/layout';
 import LearnerDashboard from './pages/learner/learner_dashboard';
 //Teacher
 import TeacherDashboard from './pages/teacher/teacher_dashboard';
+import ClassMasterlist from './pages/teacher/class_masterlist';
+import TeacherLearningMaterials from './pages/teacher/teachers_resources';
+import InterventionSchedule from './pages/teacher/intervention_schedule';
 //Admin
 import AdminDashboard from './pages/admin/admin_dashboard';
 import LearningMaterials from './pages/admin/resources';
-import ClassMasterlist from './pages/teacher/class_masterlist';
 //Manage Users in Admin
 import ManageUsers from './pages/admin/user_management';
 import Learners from './pages/admin/users/learners';
@@ -66,6 +68,22 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['teacher']}>
                 <ClassMasterlist />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/teacher-materials"
+            element={
+              <PrivateRoute allowedRoles={['teacher']}>
+                <TeacherLearningMaterials />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/intervention-schedule"
+            element={
+              <PrivateRoute allowedRoles={['teacher']}>
+                <InterventionSchedule />
               </PrivateRoute>
             }
           />

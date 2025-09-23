@@ -172,7 +172,7 @@ export function Layout() {
               <div className={`sm:hidden group relative ${isSearchOpen ? 'flex-grow max-w-[300px]' : ''}`}>
                 {!isSearchOpen ? (
                   <button
-                    className="flex items-center justify-center bg-white shadow rounded-xl px-3 h-12 min-w-[48px] flex-shrink-0"
+                    className="flex items-center justify-center bg-white shadow rounded-xl px-3 h-12 min-w-[48px] flex-shrink-0 "
                     onClick={toggleSearch}
                   >
                     <img src={SearchIcon} alt="Search" className="w-6 h-6" />
@@ -180,7 +180,7 @@ export function Layout() {
                 ) : (
                   <div className="flex items-center h-12 bg-white shadow rounded-xl px-3 overflow-hidden w-full">
                     <button
-                      className="flex items-center justify-center flex-shrink-0 mr-2"
+                      className="flex items-center justify-center flex-shrink-0 mr-2 hover:bg-gray-100 transition-colors"
                       onClick={toggleSearch}
                     >
                       <img src={BackIcon} alt="Back" className="w-6 h-6" />
@@ -188,7 +188,7 @@ export function Layout() {
                     <input
                       type="text"
                       placeholder="Search here..."
-                      className="text-black flex-1 min-w-0 bg-transparent outline-none text-sm"
+                      className="text-black flex-1 min-w-0 bg-transparent outline-none text-sm hover:bg-gray-100 transition-colors"
                     />
                     <div className="flex-shrink-0 w-6 h-6 ml-2">
                       <img src={SearchIcon} alt="Search" className="w-full h-full object-contain" />
@@ -203,7 +203,7 @@ export function Layout() {
                   <div className="flex items-center h-12 bg-white shadow rounded-xl px-3 overflow-hidden w-full">
                     {isSearchOpen && (
                       <button
-                        className="flex items-center justify-center flex-shrink-0 mr-2"
+                        className="flex items-center justify-center flex-shrink-0 mr-2 hover:bg-gray-100 transition-colors"
                         onClick={toggleSearch}
                       >
                         <img src={BackIcon} alt="Back" className="w-6 h-6" />
@@ -220,7 +220,7 @@ export function Layout() {
                   </div>
                 ) : (
                   <button
-                    className="flex items-center justify-center bg-white shadow rounded-xl px-3 h-12 min-w-[48px] flex-shrink-0"
+                    className="flex items-center justify-center bg-white shadow rounded-xl px-3 h-12 min-w-[48px] flex-shrink-0 hover:bg-gray-100 transition-colors"
                     onClick={toggleSearch}
                   >
                     <img src={SearchIcon} alt="Search" className="w-6 h-6" />
@@ -229,7 +229,7 @@ export function Layout() {
               </div>
 
               {/* Desktop Search (lg:block) */}
-              <div className="hidden lg:flex flex-grow max-w-[1090px] group relative items-center h-12 bg-white shadow rounded-xl px-5 overflow-hidden">
+              <div className="hidden lg:flex flex-grow max-w-[1090px] group relative items-center h-12 bg-white shadow rounded-xl px-5 overflow-hidden hover:bg-gray-100 transition-colors">
                 <input
                   type="text"
                   placeholder="Search here..."
