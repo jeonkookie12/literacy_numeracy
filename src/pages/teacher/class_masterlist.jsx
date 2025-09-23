@@ -65,13 +65,13 @@ function ClassMasterlist() {
           </div>
           <div className="flex gap-3">
             <button
-              className="border border-[#82B9F9] bg-transparent text-blue-500 p-1.5 rounded-xl flex items-center hover:cursor-pointer"
+              className="border border-[#82B9F9] bg-transparent p-1.5 rounded-xl flex items-center hover:bg-[#82B9F9] hover:text-white hover:cursor-pointer transition-colors"
               onClick={handleAddNewLearnerClick}
             >
               <img src={AddNewLearnerIcon} alt="Add New Learner" className="mr-1.5 w-4 h-4" /> Add New Learner
             </button>
             <button
-              className="border border-[#82B9F9] bg-transparent text-blue-500 p-1.5 rounded-xl flex items-center hover:cursor-pointer"
+              className="border border-[#82B9F9] bg-transparent p-1.5 rounded-xl flex items-center hover:bg-[#82B9F9] hover:text-white hover:cursor-pointer transition-colors"
               onClick={handleExportClick}
             >
               <img src={Export} alt="Download" className="mr-1.5 w-4 h-4" /> Export
@@ -99,7 +99,7 @@ function ClassMasterlist() {
                 <td className="p-1.5 text-left text-xs sm:text-sm">Can Add Two Digits</td>
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
-                    className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none"
+                    className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
                     onClick={() => handleRowClick(1)}
                   >
                     <img
@@ -118,7 +118,7 @@ function ClassMasterlist() {
                 <td className="p-1.5 text-left text-xs sm:text-sm">Can Add Two Digits</td>
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
-                    className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none"
+                    className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
                     onClick={() => handleRowClick(2)}
                   >
                     <img
