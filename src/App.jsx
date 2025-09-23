@@ -4,11 +4,15 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import AuthPage from './pages/authPage';
 import PrivateRoute from './components/privroute';
 import Layout from './components/layout';
+//Learner
 import LearnerDashboard from './pages/learner/learner_dashboard';
+//Teacher
 import TeacherDashboard from './pages/teacher/teacher_dashboard';
+//Admin
 import AdminDashboard from './pages/admin/admin_dashboard';
-import ManageUsers from './pages/admin/user_management';
 import LearningMaterials from './pages/admin/resources';
+//Manage Users in Admin
+import ManageUsers from './pages/admin/user_management';
 import Learners from './pages/admin/users/learners';
 import Teachers from './pages/admin/users/teachers';
 import SectionDetails from './pages/admin/users/section_details';

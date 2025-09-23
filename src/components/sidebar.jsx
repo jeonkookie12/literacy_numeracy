@@ -21,7 +21,7 @@ function Sidebar({ open, setOpen, setTitle }) {
     return null;
   }
 
-  const sidebarWidth = open ? "w-64" : "w-20";
+  const sidebarWidth = open ? "w-60" : "w-18";
 
   // Log user details
   useEffect(() => {
@@ -32,7 +32,7 @@ function Sidebar({ open, setOpen, setTitle }) {
     });
   }, [user]);
 
-  // menu items based on user type
+  // Menu items based on user type
   const menuItems = (() => {
     switch (userType) {
       case "learner":
@@ -60,7 +60,6 @@ function Sidebar({ open, setOpen, setTitle }) {
 
   useEffect(() => {
     const onResize = () => {
-      //console.log("Sidebar - Window resized, width:", window.innerWidth);
       if (window.innerWidth >= 1024) {
         setOpen(true);
       } else {
@@ -73,24 +72,18 @@ function Sidebar({ open, setOpen, setTitle }) {
   }, [setOpen]);
 
   useEffect(() => {
-    //console.log("Sidebar - Checking navigation, current path:", location.pathname);
     const active = menuItems.find((m) => m.path === location.pathname);
     if (active) {
-      //console.log("Sidebar - Active route found:", active.label);
       setTitle(active.label);
     } else {
-      // Allow sub-routes under valid parent routes
       const isValidSubRoute = menuItems.some((m) => location.pathname.startsWith(m.path));
       if (isValidSubRoute) {
-        //console.log("Sidebar - Valid sub-route, no redirect:", location.pathname);
-        // Optionally set a custom title for sub-routes
         if (location.pathname.startsWith("/manage-users")) {
           setTitle("Manage Users");
         }
       } else {
         const dashboard = menuItems.find((m) => m.label === "Dashboard");
         if (dashboard) {
-          //console.log("Sidebar - Redirecting to default dashboard:", dashboard.path);
           setTitle(dashboard.label);
           navigate(dashboard.path);
         }
@@ -99,7 +92,6 @@ function Sidebar({ open, setOpen, setTitle }) {
   }, [location.pathname, setTitle, menuItems, navigate]);
 
   const go = (path, label) => {
-    console.log("Sidebar - Navigating to:", path);
     setTitle(label);
     if (window.innerWidth < 1024) setOpen(false);
     navigate(path);
@@ -107,19 +99,19 @@ function Sidebar({ open, setOpen, setTitle }) {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-40 px-4 py-4 transition-transform duration-300 ease-in-out
+      className={`fixed inset-y-0 left-0 z-40 px-3.5 py-3.5 transition-transform duration-300 ease-in-out
       lg:static ${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
     >
       <div
-        className={`h-full rounded-3xl bg-[#96C5F7] shadow-xl flex flex-col overflow-hidden
+        className={`h-full rounded-2xl bg-[#96C5F7] shadow-lg flex flex-col overflow-hidden
         transition-[width] duration-300 ease-in-out relative ${sidebarWidth}`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-6 pb-4">
+        <div className="flex items-center justify-between px-3.5 pt-5 pb-3.5">
           <div className="flex items-center gap-2">
-            <img src={SchoolLogo} alt="Logo" className="w-10 h-10 rounded-full" />
+            <img src={SchoolLogo} alt="Logo" className="w-11 h-11 rounded-full" />
             <div
-              className={`text-xs font-medium leading-tight text-white whitespace-nowrap ml-1
+              className={`text-sm font-medium leading-tight text-white whitespace-nowrap
               transition-all duration-300 origin-left
               ${open ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
             >
@@ -129,36 +121,33 @@ function Sidebar({ open, setOpen, setTitle }) {
 
           {open && (
             <div
-              onClick={() => {
-                console.log("Sidebar - Closing sidebar");
-                setOpen(false);
-              }}
+              onClick={() => setOpen(false)}
               className="cursor-pointer p-2 rounded hover:bg-white/20 transition"
               title="Collapse sidebar"
             >
-              <img src={SidebarCloseIcon} alt="Close Sidebar" className="w-5 h-5" />
+              <img src={SidebarCloseIcon} alt="Close Sidebar" className="w-4.5 h-4.5" />
             </div>
           )}
         </div>
 
-        <div className="h-4 mb-1" />
-        <div className="border-t border-blue-200 mb-3 mx-4" />
+        <div className="h-3 mb-1.8" />
+        <div className="border-t border-blue-200 mb-2.5 mx-3.5" />
 
         {/* Menu */}
-        <div className="flex flex-col flex-1 px-2 justify-between">
-          <nav className="space-y-2">
+        <div className="flex flex-col flex-1 px-2.5 justify-between">
+          <nav className="space-y-1.5">
             {menuItems.map(({ label, path, icon }) => {
               const active = location.pathname === path;
               return (
                 <div
                   key={label}
                   onClick={() => go(path, label)}
-                  className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium cursor-pointer
+                  className={`flex items-center px-3.5 py-2.5 rounded-lg text-sm font-medium cursor-pointer
                     ${active ? "bg-white text-black" : "text-black hover:bg-white/30"}
-                    transition-all duration-300 ease-in-out`}
+                    transition-all duration-200 ease-in-out`}
                 >
-                  <div className="flex justify-center items-center w-7 h-7 mr-3 shrink-0">
-                    <img src={icon} alt={`${label} icon`} className="w-6 h-6" />
+                  <div className="flex justify-center items-center w-7 h-7 mr-2.5 shrink-0">
+                    <img src={icon} alt={`${label} icon`} className="w-5.5 h-5.5" />
                   </div>
                   <span
                     className={`transition-all duration-300 origin-left
@@ -173,18 +162,17 @@ function Sidebar({ open, setOpen, setTitle }) {
           </nav>
 
           {/* Logout */}
-          <div className="mt-2 mb-4">
+          <div className="mt-2 mb-3.5">
             <div
               onClick={async () => {
-                console.log("Sidebar - Initiating logout");
                 if (window.innerWidth < 1024) setOpen(false);
                 await logout();
               }}
-              className="flex items-center px-4 py-3 rounded-lg text-sm font-medium text-black cursor-pointer
+              className="flex items-center px-3.5 py-2.5 rounded-lg text-sm font-medium text-black cursor-pointer
               hover:bg-white/30 transition-colors duration-200"
             >
-              <div className="flex justify-center items-center w-7 h-7 mr-3 shrink-0">
-                <img src={LogoutIcon} alt="Logout icon" className="w-6 h-6" />
+              <div className="flex justify-center items-center w-7 h-7 mr-2.5 shrink-0">
+                <img src={LogoutIcon} alt="Logout icon" className="w-5.5 h-5.5" />
               </div>
               <span
                 className={`transition-all duration-300 origin-left

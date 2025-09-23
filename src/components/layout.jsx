@@ -153,15 +153,15 @@ export function Layout() {
       {/* ───── Main Area ───── */}
       <div className="flex-1 flex flex-col h-full">
         {/* Top Navbar */}
-        <header className="w-full bg-[#EEF1FF] lg:px-10 md:px-8 sm:px-7 px-5 mt-2 z-30">
-          <div className="w-full flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-4 xl:gap-4 py-3 flex-nowrap overflow-visible">
+        <header className="w-full bg-[#EEF1FF] lg:px-10 md:px-8 sm:px-6 px-4 pt-4 z-30">
+          <div className="w-full flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-4 xl:gap-4 py-2 flex-nowrap overflow-visible h-14">
             
             {/* Left Section: Menu and Search */}
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-4">
               {/* Sidebar Toggle */}
               {!open && (
                 <div
-                  className="flex items-center justify-center bg-white shadow rounded-xl px-3 sm:px-3 md:px-4 lg:px-4 h-12 sm:h-12 md:h-12 lg:h-14 min-w-[48px] sm:min-w-[48px] md:min-w-[52px] lg:min-w-[44px] flex-shrink-0 cursor-pointer"
+                  className="flex items-center justify-center bg-white shadow rounded-xl px-3 h-12 min-w-[48px] flex-shrink-0 cursor-pointer"
                   onClick={() => setOpen(true)}
                 >
                   <img src={HamburgerIcon} alt="Menu" className="w-7 h-7 sm:w-6 md:w-6 lg:w-6 sm:h-6 md:h-6 lg:h-6 object-contain" />
@@ -214,7 +214,7 @@ export function Layout() {
                       placeholder="Search here..."
                       className="text-black flex-1 min-w-0 bg-transparent outline-none text-sm md:text-sm"
                     />
-                    <div className="flex-shrink-0 w-5 h-5 md:w-5 md:h-5 ml-2">
+                    <div className="flex-shrink-0 w-5 h-5 ml-2">
                       <img src={SearchIcon} alt="Search" className="w-full h-full object-contain" />
                     </div>
                   </div>
@@ -229,7 +229,7 @@ export function Layout() {
               </div>
 
               {/* Desktop Search (lg:block) */}
-              <div className="hidden lg:flex flex-grow max-w-[1090px] group relative items-center h-14 bg-white shadow rounded-xl px-5 overflow-hidden">
+              <div className="hidden lg:flex flex-grow max-w-[1090px] group relative items-center h-12 bg-white shadow rounded-xl px-5 overflow-hidden">
                 <input
                   type="text"
                   placeholder="Search here..."
@@ -244,14 +244,14 @@ export function Layout() {
             {/* Right-side Pills */}
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-3 flex-shrink-0 overflow-visible">
               {/* Date Pill (Hidden below lg) */}
-              <div className="hidden lg:flex items-center gap-2 text-sm text-gray-600 bg-white shadow rounded-xl px-4 h-14 flex-shrink-0">
+              <div className="hidden lg:flex items-center gap-2 text-sm text-gray-600 bg-white shadow rounded-xl px-4 h-12 flex-shrink-0">
                 <img src={CalendarIcon} alt="Calendar" className="w-6 h-6 flex-shrink-0" />
                 <span className="whitespace-nowrap">{formatDateTime(currentTime)}</span>
               </div>
 
               {/* Dark Mode (Hidden below lg) */}
               <button
-                className="hidden lg:flex items-center justify-center bg-white shadow rounded-xl px-4 h-14 min-w-[44px] flex-shrink-0 hover:bg-gray-100 transition-colors"
+                className="hidden lg:flex items-center justify-center bg-white shadow rounded-xl px-4 h-12 min-w-[44px] flex-shrink-0 hover:bg-gray-100 transition-colors"
                 onClick={handleDarkModeClick}
               >
                 <img src={MoonIcon} alt="Dark Mode" className="w-6 h-6" />
@@ -259,7 +259,7 @@ export function Layout() {
 
               {/* Language (Hidden below lg) */}
               <button
-                className="hidden lg:flex items-center justify-center bg-white shadow rounded-xl px-4 h-14 min-w-[44px] flex-shrink-0 hover:bg-gray-100 transition-colors"
+                className="hidden lg:flex items-center justify-center bg-white shadow rounded-xl px-4 h-12 min-w-[44px] flex-shrink-0 hover:bg-gray-100 transition-colors"
                 onClick={handleLanguageClick}
               >
                 <img src={GlobeIcon} alt="Language" className="w-6 h-6" />
@@ -268,7 +268,7 @@ export function Layout() {
               {/* Profile Dropdown */}
               <div className="relative flex-shrink-0">
                 <button
-                  className="flex items-center gap-1 sm:gap-2 md:gap-2 bg-white shadow rounded-xl px-3 sm:px-3 md:px-3 lg:px-4 h-12 sm:h-12 md:h-12 lg:h-14 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-1 sm:gap-2 md:gap-2 bg-white shadow rounded-xl px-3 sm:px-3 md:px-3 lg:px-4 h-12 sm:h-12 md:h-12 lg:h-12 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] hover:bg-gray-100 transition-colors"
                   onClick={toggleDropdown}
                 >
                   <img src={ProfileIcon} alt="User" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />

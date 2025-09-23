@@ -82,7 +82,7 @@ function TeacherDashboard() {
             <img src={Export} alt="Download" className="mr-2 w-5 h-5" /> Export
           </button>
         </div>
-        <div className="overflow-x-auto rounded-xl">
+        <div className="overflow-x-auto border border-blue-300 rounded-xl">
           <table className="w-full rounded-xl">
             <thead className="bg-[#82B9F9]">
               <tr>
