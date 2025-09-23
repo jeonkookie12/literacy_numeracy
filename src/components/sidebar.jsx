@@ -220,7 +220,7 @@ function Sidebar({ open, setOpen, setTitle }) {
                       })}
                     </div>
                   )}
-                  {separator && open && (
+                  {separator && (
                     <div className="border-t border-blue-200 my-2.5 mx-3.5" />
                   )}
                 </div>
