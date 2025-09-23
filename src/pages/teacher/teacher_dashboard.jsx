@@ -6,7 +6,8 @@ import FirstPageIcon from "../../assets/teacher/first-page.svg";
 import PreviousPageIcon from "../../assets/teacher/previous-page.svg";
 import NextPageIcon from "../../assets/teacher/next-page.svg";
 import LastPageIcon from "../../assets/teacher/last-page.svg";
-import SearchIcon from "../../assets/global/navbar/search.svg"; 
+import SearchIcon from "../../assets/global/navbar/search.svg";
+import EditIcon from "../../assets/teacher/edit.svg";
 
 function TeacherDashboard() {
   const { user } = useAuth();
@@ -60,94 +61,118 @@ function TeacherDashboard() {
       </section>
 
       {/* Class Masterlist Section */}
-      <section className="bg-white rounded-xl p-4 sm:p-10 shadow-md mb-8">
-        <h2 className="text-gray-800 text-2xl font-semibold mb-8 rounded-lg">Class Masterlist</h2>
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <div className="relative w-full sm:w-1/3">
+      <section className="bg-white rounded-xl p-3 sm:p-6 shadow-md mb-8">
+        <h2 className="text-gray-800 text-xl font-semibold mb-6 rounded-lg">Class Masterlist</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+          <div className="relative w-full sm:w-1/4">
             <input
               type="text"
               placeholder="Search here..."
-              className="border border-[#82B9F9] p-2 rounded-xl w-full pr-10"
+              className="border border-[#82B9F9] p-1.5 rounded-xl w-full pr-8"
             />
             <img
               src={SearchIcon}
               alt="Search"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-5 h-5"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4"
             />
           </div>
-          <button
-            className="border border-[#82B9F9] bg-transparent text-blue-500 p-2 rounded-xl flex items-center hover:cursor-pointer"
-            onClick={handleExportClick}
-          >
-            <img src={Export} alt="Download" className="mr-2 w-5 h-5" /> Export
-          </button>
+          <div className="flex gap-3">
+            <button
+              className="border border-[#82B9F9] bg-transparent p-1.5 rounded-xl flex items-center hover:bg-[#82B9F9] hover:text-white hover:cursor-pointer transition-colors"
+              onClick={handleExportClick}
+            >
+              <img src={Export} alt="Download" className="mr-1.5 w-4 h-4" /> Export
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto border border-blue-300 rounded-xl">
           <table className="w-full rounded-xl">
             <thead className="bg-[#82B9F9]">
               <tr>
-                <th className="p-2 text-center text-sm sm:text-base rounded-tl-xl">No.</th>
-                <th className="p-2 text-left text-sm sm:text-base">Learner's Name</th>
-                <th className="p-2 text-center text-sm sm:text-base">LRN</th>
-                <th className="p-2 text-left text-sm sm:text-base">Literacy Remarks</th>
-                <th className="p-2 text-left text-sm sm:text-base">Numeracy Remarks</th>
-                <th className="p-2 text-center text-sm sm:text-base rounded-tr-xl">Action</th>
+                <th className="p-1.5 text-center text-xs sm:text-sm rounded-tl-xl">No.</th>
+                <th className="p-1.5 text-left text-xs sm:text-sm">Learner's Name</th>
+                <th className="p-1.5 text-center text-xs sm:text-sm">LRN</th>
+                <th className="p-1.5 text-left text-xs sm:text-sm">Literacy Remarks</th>
+                <th className="p-1.5 text-left text-xs sm:text-sm">Numeracy Remarks</th>
+                <th className="p-1.5 text-center text-xs sm:text-sm rounded-tr-xl">Action</th>
               </tr>
             </thead>
             <tbody>
               <tr className="hover:bg-gray-100 cursor-pointer" onClick={() => handleRowClick(1)}>
-                <td className="p-2 text-center text-sm sm:text-base">1</td>
-                <td className="p-2 text-left text-sm sm:text-base">Reyes, Jose Dela Cruz</td>
-                <td className="p-2 text-center text-sm sm:text-base">1251395765123</td>
-                <td className="p-2 text-left text-sm sm:text-base">Can Sound B</td>
-                <td className="p-2 text-left text-sm sm:text-base">Can Add Two Digits</td>
-                <td className="p-2 text-center text-sm sm:text-base"><a href="#" className="text-blue-500">Edit</a></td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">1</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Reyes, Jose Dela Cruz</td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">1251395765123</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Can Sound B</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Can Add Two Digits</td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">
+                  <button
+                    className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
+                    onClick={() => handleRowClick(1)}
+                  >
+                    <img
+                      src={EditIcon}
+                      alt="Edit"
+                      className="w-4 h-4 text-white"
+                    />
+                  </button>
+                </td>
               </tr>
               <tr className="hover:bg-gray-100 cursor-pointer" onClick={() => handleRowClick(2)}>
-                <td className="p-2 text-center text-sm sm:text-base">2</td>
-                <td className="p-2 text-left text-sm sm:text-base">Reyes, Jose Dela Cruz</td>
-                <td className="p-2 text-center text-sm sm:text-base">1251395765123</td>
-                <td className="p-2 text-left text-sm sm:text-base">Can Sound B</td>
-                <td className="p-2 text-left text-sm sm:text-base">Can Add Two Digits</td>
-                <td className="p-2 text-center text-sm sm:text-base"><a href="#" className="text-blue-500">Edit</a></td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">2</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Reyes, Jose Dela Cruz</td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">1251395765123</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Can Sound B</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Can Add Two Digits</td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">
+                  <button
+                    className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
+                    onClick={() => handleRowClick(2)}
+                  >
+                    <img
+                      src={EditIcon}
+                      alt="Edit"
+                      className="w-4 h-4 text-white"
+                    />
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col sm:flex-row justify-end items-center mt-4 gap-4">
+        <div className="flex flex-col sm:flex-row justify-end items-center mt-3 gap-3">
           <div className="flex items-center">
-            <span className="mr-2 text-sm sm:text-base">Rows per page:</span>
-            <select className="border border-[#82B9F9] rounded-xl p-1 text-sm sm:text-base">
+            <span className="mr-2 text-xs sm:text-sm">Rows per page:</span>
+            <select className="border border-[#82B9F9] rounded-xl p-1 text-xs sm:text-sm">
               <option value="10">10</option>
               <option value="30">30</option>
               <option value="50">50</option>
             </select>
           </div>
-          <span className="text-sm sm:text-base">1-10 of 20</span>
+          <span className="text-xs sm:text-sm">1-10 of 20</span>
           <div className="flex gap-2">
             <button
               className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
               onClick={handleFirstPageClick}
             >
-              <img src={FirstPageIcon} alt="First Page" className="w-5 h-5" />
+              <img src={FirstPageIcon} alt="First Page" className="w-4 h-4" />
             </button>
             <button
               className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
               onClick={handlePreviousPageClick}
             >
-              <img src={PreviousPageIcon} alt="Previous Page" className="w-5 h-5" />
+              <img src={PreviousPageIcon} alt="Previous Page" className="w-4 h-4" />
             </button>
             <button
               className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
               onClick={handleNextPageClick}
             >
-              <img src={NextPageIcon} alt="Next Page" className="w-5 h-5" />
+              <img src={NextPageIcon} alt="Next Page" className="w-4 h-4" />
             </button>
             <button
               className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
               onClick={handleLastPageClick}
             >
-              <img src={LastPageIcon} alt="Last Page" className="w-5 h-5" />
+              <img src={LastPageIcon} alt="Last Page" className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -166,94 +191,118 @@ function TeacherDashboard() {
       </section>
 
       {/* Intervention Schedule Section */}
-      <section className="bg-white rounded-xl p-4 sm:p-10 shadow-md mb-8">
+      <section className="bg-white rounded-xl p-4 sm:p-6 shadow-md mb-8">
         <h2 className="text-gray-800 text-2xl font-semibold mb-6 rounded-lg">Intervention Schedule</h2>
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <div className="relative w-full sm:w-1/3">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+          <div className="relative w-full sm:w-1/4">
             <input
               type="text"
               placeholder="Search here..."
-              className="border border-[#82B9F9] p-2 rounded-xl w-full pr-10"
+              className="border border-[#82B9F9] p-1.5 rounded-xl w-full pr-8"
             />
             <img
               src={SearchIcon}
               alt="Search"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-5 h-5"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4"
             />
           </div>
-          <button
-            className="border border-[#82B9F9] bg-transparent text-blue-500 p-2 rounded-xl flex items-center hover:cursor-pointer"
-            onClick={handleExportClick}
-          >
-            <img src={Export} alt="Download" className="mr-2 w-5 h-5" /> Export
-          </button>
+          <div className="flex gap-3">
+            <button
+              className="border border-[#82B9F9] bg-transparent p-1.5 rounded-xl flex items-center hover:bg-[#82B9F9] hover:text-white hover:cursor-pointer transition-colors"
+              onClick={handleExportClick}
+            >
+              <img src={Export} alt="Download" className="mr-1.5 w-4 h-4" /> Export
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto border border-blue-300 rounded-xl">
           <table className="w-full rounded-xl">
             <thead className="bg-[#82B9F9]">
               <tr>
-                <th className="p-2 text-center text-sm sm:text-base rounded-tl-xl">No.</th>
-                <th className="p-2 text-left text-sm sm:text-base">Learner's Name</th>
-                <th className="p-2 text-left text-sm sm:text-base">Day</th>
-                <th className="p-2 text-left text-sm sm:text-base">Time</th>
-                <th className="p-2 text-left text-sm sm:text-base">Intervention Remarks</th>
-                <th className="p-2 text-center text-sm sm:text-base rounded-tr-xl">Action</th>
+                <th className="p-1.5 text-center text-xs sm:text-sm rounded-tl-xl">No.</th>
+                <th className="p-1.5 text-left text-xs sm:text-sm">Learner's Name</th>
+                <th className="p-1.5 text-center text-xs sm:text-sm">Day</th>
+                <th className="p-1.5 text-left text-xs sm:text-sm">Time</th>
+                <th className="p-1.5 text-left text-xs sm:text-sm">Intervention Remarks</th>
+                <th className="p-1.5 text-center text-xs sm:text-sm rounded-tr-xl">Action</th>
               </tr>
             </thead>
             <tbody>
               <tr className="hover:bg-gray-100 cursor-pointer" onClick={() => handleRowClick(1)}>
-                <td className="p-2 text-center text-sm sm:text-base">1</td>
-                <td className="p-2 text-left text-sm sm:text-base">Reyes, Jose Dela Cruz</td>
-                <td className="p-2 text-left text-sm sm:text-base">Every Monday</td>
-                <td className="p-2 text-left text-sm sm:text-base">8:00 - 8:30AM</td>
-                <td className="p-2 text-left text-sm sm:text-base">Reading</td>
-                <td className="p-2 text-center text-sm sm:text-base"><a href="#" className="text-blue-500">Edit</a></td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">1</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Reyes, Jose Dela Cruz</td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">Every Monday</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">8:00 - 8:30AM</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Reading</td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">
+                  <button
+                    className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
+                    onClick={() => handleRowClick(1)}
+                  >
+                    <img
+                      src={EditIcon}
+                      alt="Edit"
+                      className="w-4 h-4 text-white"
+                    />
+                  </button>
+                </td>
               </tr>
               <tr className="hover:bg-gray-100 cursor-pointer" onClick={() => handleRowClick(2)}>
-                <td className="p-2 text-center text-sm sm:text-base">2</td>
-                <td className="p-2 text-left text-sm sm:text-base">Reyes, Jose Dela Cruz</td>
-                <td className="p-2 text-left text-sm sm:text-base">Every Wednesday</td>
-                <td className="p-2 text-left text-sm sm:text-base">8:00 - 8:30AM</td>
-                <td className="p-2 text-left text-sm sm:text-base">Numeracy</td>
-                <td className="p-2 text-center text-sm sm:text-base"><a href="#" className="text-blue-500">Edit</a></td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">2</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Reyes, Jose Dela Cruz</td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">Every Wednesday</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">8:00 - 8:30AM</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">Numeracy</td>
+                <td className="p-1.5 text-center text-xs sm:text-sm">
+                  <button
+                    className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
+                    onClick={() => handleRowClick(2)}
+                  >
+                    <img
+                      src={EditIcon}
+                      alt="Edit"
+                      className="w-4 h-4 text-white"
+                    />
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col sm:flex-row justify-end items-center mt-4 gap-4">
+        <div className="flex flex-col sm:flex-row justify-end items-center mt-3 gap-3">
           <div className="flex items-center">
-            <span className="mr-2 text-sm sm:text-base">Rows per page:</span>
+            <span className="mr-2 text-xs sm:text-sm">Rows per page:</span>
             <select className="border border-[#82B9F9] rounded-xl p-1 text-sm sm:text-base">
               <option value="10">10</option>
               <option value="30">30</option>
               <option value="50">50</option>
             </select>
           </div>
-          <span className="text-sm sm:text-base">1-10 of 20</span>
+          <span className="text-xs sm:text-sm">1-10 of 20</span>
           <div className="flex gap-2">
             <button
               className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
               onClick={handleFirstPageClick}
             >
-              <img src={FirstPageIcon} alt="First Page" className="w-5 h-5" />
+              <img src={FirstPageIcon} alt="First Page" className="w-4 h-4" />
             </button>
             <button
               className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
               onClick={handlePreviousPageClick}
             >
-              <img src={PreviousPageIcon} alt="Previous Page" className="w-5 h-5" />
+              <img src={PreviousPageIcon} alt="Previous Page" className="w-4 h-4" />
             </button>
             <button
               className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
               onClick={handleNextPageClick}
             >
-              <img src={NextPageIcon} alt="Next Page" className="w-5 h-5" />
+              <img src={NextPageIcon} alt="Next Page" className="w-4 h-4" />
             </button>
             <button
               className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
               onClick={handleLastPageClick}
             >
-              <img src={LastPageIcon} alt="Last Page" className="w-5 h-5" />
+              <img src={LastPageIcon} alt="Last Page" className="w-4 h-4" />
             </button>
           </div>
         </div>
