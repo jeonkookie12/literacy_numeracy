@@ -99,7 +99,7 @@ const AuthPage = () => {
             <span className="text-lg font-semibold">Alapan 1 Elementary School</span>
           </div>
           <div className="relative">
-            <div className="flex items-center p-2 border-gray-100 rounded-lg text-base bg-white cursor-pointer">
+            <div className="flex items-center p-2 bg-gray-100 rounded-lg text-base cursor-pointer hover:bg-gray-300 transition-colors">
               <img src={languagee} alt="Language Selector Logo" className="w-5 h-5 mr-2" />
               <span>{language === 'en' ? 'English' : 'Filipino'}</span>
             </div>
