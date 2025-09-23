@@ -1,104 +1,144 @@
-import React from 'react';
+import React from "react";
+import Export from "../../assets/teacher/export.svg";
+import FirstPageIcon from "../../assets/teacher/first-page.svg";
+import PreviousPageIcon from "../../assets/teacher/previous-page.svg";
+import NextPageIcon from "../../assets/teacher/next-page.svg";
+import LastPageIcon from "../../assets/teacher/last-page.svg";
+import SearchIcon from "../../assets/global/navbar/search.svg";
 
+function ClassMasterlist() {
+  // Placeholder click handlers
+  const handleExportClick = () => {
+    console.log("Export clicked");
+    // Add export logic here
+  };
 
-function MasterList() {
+  const handleFirstPageClick = () => {
+    console.log("First page clicked");
+    // Add navigation logic here
+  };
 
+  const handlePreviousPageClick = () => {
+    console.log("Previous page clicked");
+    // Add navigation logic here
+  };
+
+  const handleNextPageClick = () => {
+    console.log("Next page clicked");
+    // Add navigation logic here
+  };
+
+  const handleLastPageClick = () => {
+    console.log("Last page clicked");
+    // Add navigation logic here
+  };
+
+  const handleRowClick = (rowNumber) => {
+    console.log(`Row ${rowNumber} clicked`);
+    // Add row click logic here
+  };
 
   return (
-    
-    <div className="flex h-screen font-sans">
-
-
-      {/* Main Content */}
-      <div className="flex-1 bg-gray-100 p-5 overflow-auto">
-
-        {/* Master list */}
-        <div className="bg-white p-5 rounded-lg shadow">
-          {/* Header with title and export button */}
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-bold">Class Masterlist</h3>
-            <button className="bg-gray-100 text-black px-2 py-2 rounded hover:bg-blue-300 transition">
-              📤 Export
+    <div className="p-4 sm:p-6 lg:p-10 overflow-y-auto scrollable-container">
+      {/* Class Masterlist Section */}
+      <section className="bg-white rounded-xl p-4 sm:p-10 shadow-md">
+        <h2 className="text-gray-800 text-2xl font-semibold mb-8 rounded-lg">Class Masterlist</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <div className="relative w-full sm:w-1/3">
+            <input
+              type="text"
+              placeholder="Search here..."
+              className="border border-[#82B9F9] p-2 rounded-xl w-full pr-10"
+            />
+            <img
+              src={SearchIcon}
+              alt="Search"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-5 h-5"
+            />
+          </div>
+          <button
+            className="border border-[#82B9F9] bg-transparent text-blue-500 p-2 rounded-xl flex items-center hover:cursor-pointer"
+            onClick={handleExportClick}
+          >
+            <img src={Export} alt="Download" className="mr-2 w-5 h-5" /> Export
+          </button>
+        </div>
+        <div className="overflow-x-auto border border-blue-300 rounded-xl">
+          <table className="w-full rounded-xl">
+            <thead className="bg-[#82B9F9]">
+              <tr>
+                <th className="p-2 text-center text-sm sm:text-base rounded-tl-xl">No.</th>
+                <th className="p-2 text-left text-sm sm:text-base">Learner's Name</th>
+                <th className="p-2 text-center text-sm sm:text-base">LRN</th>
+                <th className="p-2 text-left text-sm sm:text-base">Literacy Remarks</th>
+                <th className="p-2 text-left text-sm sm:text-base">Numeracy Remarks</th>
+                <th className="p-2 text-center text-sm sm:text-base rounded-tr-xl">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="hover:bg-gray-100 cursor-pointer" onClick={() => handleRowClick(1)}>
+                <td className="p-2 text-center text-sm sm:text-base">1</td>
+                <td className="p-2 text-left text-sm sm:text-base">Reyes, Jose Dela Cruz</td>
+                <td className="p-2 text-center text-sm sm:text-base">1251395765123</td>
+                <td className="p-2 text-left text-sm sm:text-base">Can Sound B</td>
+                <td className="p-2 text-left text-sm sm:text-base">Can Add Two Digits</td>
+                <td className="p-2 text-center text-sm sm:text-base">
+                  <a href="#" className="text-blue-500">Edit</a>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-100 cursor-pointer" onClick={() => handleRowClick(2)}>
+                <td className="p-2 text-center text-sm sm:text-base">2</td>
+                <td className="p-2 text-left text-sm sm:text-base">Reyes, Jose Dela Cruz</td>
+                <td className="p-2 text-center text-sm sm:text-base">1251395765123</td>
+                <td className="p-2 text-left text-sm sm:text-base">Can Sound B</td>
+                <td className="p-2 text-left text-sm sm:text-base">Can Add Two Digits</td>
+                <td className="p-2 text-center text-sm sm:text-base">
+                  <a href="#" className="text-blue-500">Edit</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="flex flex-col sm:flex-row justify-end items-center mt-4 gap-4">
+          <div className="flex items-center">
+            <span className="mr-2 text-sm sm:text-base">Rows per page:</span>
+            <select className="border border-[#82B9F9] rounded-xl p-1 text-sm sm:text-base">
+              <option value="10">10</option>
+              <option value="30">30</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+          <span className="text-sm sm:text-base">1-10 of 20</span>
+          <div className="flex gap-2">
+            <button
+              className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
+              onClick={handleFirstPageClick}
+            >
+              <img src={FirstPageIcon} alt="First Page" className="w-5 h-5" />
+            </button>
+            <button
+              className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
+              onClick={handlePreviousPageClick}
+            >
+              <img src={PreviousPageIcon} alt="Previous Page" className="w-5 h-5" />
+            </button>
+            <button
+              className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
+              onClick={handleNextPageClick}
+            >
+              <img src={NextPageIcon} alt="Next Page" className="w-5 h-5" />
+            </button>
+            <button
+              className="p-1 hover:bg-gray-200 hover:rounded-full hover:cursor-pointer"
+              onClick={handleLastPageClick}
+            >
+              <img src={LastPageIcon} alt="Last Page" className="w-5 h-5" />
             </button>
           </div>
-
-          {/* Search bar */}
-          <div className="mb-4">
-            <form className="relative w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Search here..."
-                className="w-full p-2 pr-10 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-              <button
-                type="submit"
-                className="absolute right-2 top-0 h-full flex items-center justify-center text-gray-500 hover:text-blue-600 text-xl"
-              >
-                🔍
-              </button>
-            </form>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-blue-300 text-left">
-                  <th className="p-2">No.</th>
-                  <th className="p-2">Learner's Name</th>
-                  <th className="p-2">LRN</th>
-                  <th className="p-2">Literacy Remarks</th>
-                  <th className="p-2">Numeracy Remarks</th>
-                  <th className="p-2">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...Array(8)].map((_, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-100 transition">
-                    <td className="p-2 align-top">{index + 1}</td>
-                    <td className="p-2 align-top">Reyes Jose Dela Cruz</td>
-                    <td className="p-2 align-top">12513957651223</td>
-                    <td className="p-2 align-top">Can Sound B</td>
-                    <td className="p-2 align-top">Can Add Two Digits</td>
-                    <td className="p-2 align-top">
-                      <button className="text-black px-3 py-1 rounded hover:bg-blue-300 transition">
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex justify-end items-center mt-4 space-x-4 text-sm text-gray-700">
-            {/* Rows per page */}
-            <div className="flex items-center space-x-2">
-              <span>Rows per page</span>
-              <select className="border border-gray-300 rounded px-2 py-1">
-                <option>10</option>
-                <option>25</option>
-                <option>50</option>
-                <option>100</option>
-              </select>
-            </div>
-
-            {/* Page count */}
-            <span>1–10 of 20</span>
-
-            {/* Navigation buttons */}
-            <div className="flex items-center space-x-1">
-              <button className="p-1 rounded hover:bg-gray-200" title="First page">⏮️</button>
-              <button className="p-1 rounded hover:bg-gray-200" title="Previous page">◀️</button>
-              <button className="p-1 rounded hover:bg-gray-200" title="Next page">▶️</button>
-              <button className="p-1 rounded hover:bg-gray-200" title="Last page">⏭️</button>
-            </div>
-          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
 
-export default MasterList;
+export default ClassMasterlist;
