@@ -11,6 +11,7 @@ import TeacherDashboard from './pages/teacher/teacher_dashboard';
 //Admin
 import AdminDashboard from './pages/admin/admin_dashboard';
 import LearningMaterials from './pages/admin/resources';
+import ClassMasterlist from './pages/teacher/class_masterlist';
 //Manage Users in Admin
 import ManageUsers from './pages/admin/user_management';
 import Learners from './pages/admin/users/learners';
@@ -57,6 +58,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['teacher']}>
                 <TeacherDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/class-masterlist"
+            element={
+              <PrivateRoute allowedRoles={['teacher']}>
+                <ClassMasterlist />
               </PrivateRoute>
             }
           />

@@ -44,7 +44,7 @@ function Sidebar({ open, setOpen, setTitle }) {
       case "teacher":
         return [
           { label: "Dashboard", path: "/teacher-dashboard", icon: DashboardIcon },
-          { label: "Class Masterlist", path: "/teacher-masterlist", icon: UsersIcon },
+          { label: "Class Masterlist", path: "/class-masterlist", icon: UsersIcon },
           { label: "Learning Resources", path: "/teacher-resources", icon: ResourcesIcon },
         ];
       case "admin":

@@ -5,12 +5,18 @@ import PreviousPageIcon from "../../assets/teacher/previous-page.svg";
 import NextPageIcon from "../../assets/teacher/next-page.svg";
 import LastPageIcon from "../../assets/teacher/last-page.svg";
 import SearchIcon from "../../assets/global/navbar/search.svg";
+import AddNewLearnerIcon from "../../assets/teacher/add.svg"; // Placeholder icon path
 
 function ClassMasterlist() {
   // Placeholder click handlers
   const handleExportClick = () => {
     console.log("Export clicked");
     // Add export logic here
+  };
+
+  const handleAddNewLearnerClick = () => {
+    console.log("Add New Learner clicked");
+    // Add logic for adding new learner here
   };
 
   const handleFirstPageClick = () => {
@@ -44,7 +50,7 @@ function ClassMasterlist() {
       <section className="bg-white rounded-xl p-4 sm:p-10 shadow-md">
         <h2 className="text-gray-800 text-2xl font-semibold mb-8 rounded-lg">Class Masterlist</h2>
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <div className="relative w-full sm:w-1/3">
+          <div className="relative w-full sm:w-1/4">
             <input
               type="text"
               placeholder="Search here..."
@@ -56,12 +62,20 @@ function ClassMasterlist() {
               className="absolute right-2 top-1/2 transform -translate-y-1/2 w-5 h-5"
             />
           </div>
-          <button
-            className="border border-[#82B9F9] bg-transparent text-blue-500 p-2 rounded-xl flex items-center hover:cursor-pointer"
-            onClick={handleExportClick}
-          >
-            <img src={Export} alt="Download" className="mr-2 w-5 h-5" /> Export
-          </button>
+          <div className="flex gap-4">
+            <button
+              className="border border-[#82B9F9] bg-transparent text-blue-500 p-2 rounded-xl flex items-center hover:cursor-pointer"
+              onClick={handleAddNewLearnerClick}
+            >
+              <img src={AddNewLearnerIcon} alt="Add New Learner" className="mr-2 w-5 h-5" /> Add New Learner
+            </button>
+            <button
+              className="border border-[#82B9F9] bg-transparent text-blue-500 p-2 rounded-xl flex items-center hover:cursor-pointer"
+              onClick={handleExportClick}
+            >
+              <img src={Export} alt="Download" className="mr-2 w-5 h-5" /> Export
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto border border-blue-300 rounded-xl">
           <table className="w-full rounded-xl">
