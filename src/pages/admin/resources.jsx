@@ -48,9 +48,6 @@ export default function LearningMaterials() {
           <button className="flex items-center gap-1 bg-white border border-blue-300 px-4 py-2 rounded-xl text-sm">
             <img src={uploadIcon} alt="Upload" className="w-6 h-6" /> Upload Resources
           </button>
-          <button className="flex items-center gap-1 bg-white border border-blue-300 px-4 py-2 rounded-xl text-sm">
-            <img src={getIcon} alt="Get" className="w-6 h-6" /> Get Resources
-          </button>
         </div>
       </div>
 
