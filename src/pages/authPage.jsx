@@ -99,7 +99,7 @@ const AuthPage = () => {
             <span className="text-lg font-semibold">Alapan 1 Elementary School</span>
           </div>
           <div className="relative">
-            <div className="flex items-center p-2 bg-gray-100 rounded-lg text-base cursor-pointer hover:bg-gray-300 transition-colors">
+            <div className="flex items-center p-2 bg-gray-200 rounded-lg text-base cursor-pointer hover:bg-gray-300 transition-colors">
               <img src={languagee} alt="Language Selector Logo" className="w-5 h-5 mr-2" />
               <span>{language === 'en' ? 'English' : 'Filipino'}</span>
             </div>
@@ -183,7 +183,7 @@ const AuthPage = () => {
                   </div>
                   <button
                     type="submit"
-                    className="w-full p-3 bg-blue-300 text-white rounded-lg text-base"
+                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors"
                   >
                     Login
                   </button>
@@ -272,7 +272,7 @@ const AuthPage = () => {
                   </p>
                   <button
                     type="submit"
-                    className="w-full p-3 bg-blue-300 text-white rounded-lg text-base"
+                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors"
                   >
                     Sign Up
                   </button>
