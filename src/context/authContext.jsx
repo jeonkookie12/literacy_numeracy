@@ -47,13 +47,13 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (login, password) => {
+  const login = async (login, password, recaptchaToken) => {
     try {
       const response = await fetch("http://localhost/literacynumeracy/login.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ login, password }),
+        body: JSON.stringify({ login, password, recaptchaToken }),
       });
       const data = await response.json();
       if (data.success) {
@@ -95,6 +95,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signup = async (firstName, lastName, lrn, email, password, recaptchaToken) => {
+    try {
+      const response = await fetch("http://localhost/literacynumeracy/signup.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          lrn,
+          email,
+          password,
+          recaptchaToken,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        console.log("Signup - Success:", {
+          message: data.message || "Signup successful",
+          userId: data.user_id || "Not provided",
+          lrn: lrn,
+          firstName: firstName,
+        });
+        return { success: true, message: data.message || "Signup successful" };
+      } else {
+        console.log("Signup - Failed:", data.message || "Unknown error");
+        return { success: false, message: data.message || "Signup failed" };
+      }
+    } catch (error) {
+      console.error("Error signing up:", error);
+      console.log("Signup - Error, no user data available");
+      return { success: false, message: "An error occurred during signup" };
+    }
+  };
+
   const logout = async () => {
     try {
       await fetch("http://localhost/literacynumeracy/logout.php", {
@@ -111,7 +146,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading }}>
       {loading ? <Spinner /> : children}
     </AuthContext.Provider>
   );
