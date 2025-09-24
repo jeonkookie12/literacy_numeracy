@@ -6,6 +6,7 @@ import A1ES from '../assets/auth/A1ES.svg';
 import students from '../assets/auth/students.png';
 import alapan_fb from '../assets/auth/fb.svg';
 import languagee from '../assets/auth/language.svg';
+import { useNavigate } from 'react-router-dom';
 
 const AuthPage = () => {
   const { login, signup } = useContext(AuthContext);
@@ -30,6 +31,7 @@ const AuthPage = () => {
     confirmPassword: ''
   });
   const recaptchaRef = useRef(null);
+  const navigate = useNavigate();
 
   const RECAPTCHA_SITE_KEY = '6LcRcdMrAAAAANuoo8JqmjPQCBz7VWFYA3Ggc2y3';
 
@@ -196,11 +198,10 @@ const AuthPage = () => {
       );
       console.log('Signup response:', result);
       if (!result.success) {
-        console.error('Signup error details:', result.debug || 'No additional details');
-        setError(result.message);
+        console.error('Signup error details:', result.message, result.debug || 'No additional details');
+        setError(result.message || 'An unexpected error occurred');
         resetRecaptcha();
       } else {
-        // Clear all text fields before switching to login
         setFirstName('');
         setLastName('');
         setLrn('');
@@ -217,13 +218,13 @@ const AuthPage = () => {
         });
         setShowPassword(false);
         setShowConfirmPassword(false);
-        setIsLogin(true);
-        setError('Signup successful! Please verify your email and log in.');
+        setError('Signup successful! Please check your email for the verification code.');
         resetRecaptcha();
+        navigate('/verify-email'); 
       }
     } catch (err) {
       console.error('Signup failed:', err.message);
-      setError('An unexpected error occurred');
+      setError('Failed to connect to server. Please try again.');
       resetRecaptcha();
     }
   };
@@ -436,138 +437,138 @@ const AuthPage = () => {
                       className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
                         fieldErrors.email ? 'border-red-500 border-2' : 'focus:ring-blue-300'
                       }`}
-                    />
-                    {fieldErrors.email && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => handleInputChange('password', e.target.value, setPassword)}
-                        className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
-                          fieldErrors.password ? 'border-red-500 border-2' : 'focus:ring-blue-300'
-                        }`}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center z-10"
-                      >
-                        {showPassword ? (
-                          <EyeSlashIcon className="h-5 w-5 text-gray-500" />
-                        ) : (
-                          <EyeIcon className="h-5 w-5 text-gray-500" />
-                        )}
-                      </button>
+                      {fieldErrors.email && (
+                        <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
+                      )}
                     </div>
-                    {fieldErrors.password && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.password}</p>
-                    )}
-                    {password && (
-                      <div className="text-sm mt-2 ml-1 space-y-1">
-                        {[
-                          { label: 'Must be at least 8 characters', valid: passwordValidations.length },
-                          { label: 'Must have at least one lowercase letter', valid: passwordValidations.lowercase },
-                          { label: 'Must have at least one uppercase letter', valid: passwordValidations.uppercase },
-                          { label: 'Must have at least one special character', valid: passwordValidations.specialChar },
-                        ].map((item, index) => (
-                          <div key={index} className="flex items-center space-x-2 text-sm text-gray-700">
-                            <div
-                              className={`w-3 h-3 rounded-full flex items-center justify-center ${
-                                item.valid ? 'bg-green-600' : 'bg-gray-300'
-                              }`}
-                            >
-                              {item.valid && <CheckIcon className="w-3 h-3 text-white" />}
-                            </div>
-                            <span>{item.label}</span>
-                          </div>
-                        ))}
+                    <div className="relative">
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Password"
+                          value={password}
+                          onChange={(e) => handleInputChange('password', e.target.value, setPassword)}
+                          className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
+                            fieldErrors.password ? 'border-red-500 border-2' : 'focus:ring-blue-300'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center z-10"
+                        >
+                          {showPassword ? (
+                            <EyeSlashIcon className="h-5 w-5 text-gray-500" />
+                          ) : (
+                            <EyeIcon className="h-5 w-5 text-gray-500" />
+                          )}
+                        </button>
                       </div>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="Confirm Password"
-                        value={confirmPassword}
-                        onChange={(e) => handleInputChange('confirmPassword', e.target.value, setConfirmPassword)}
-                        className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
-                          fieldErrors.confirmPassword ? 'border-red-500 border-2' : 'focus:ring-blue-300'
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center z-10"
-                      >
-                        {showConfirmPassword ? (
-                          <EyeSlashIcon className="h-5 w-5 text-gray-500" />
-                        ) : (
-                          <EyeIcon className="h-5 w-5 text-gray-500" />
-                        )}
-                      </button>
+                      {fieldErrors.password && (
+                        <p className="text-red-500 text-xs mt-1">{fieldErrors.password}</p>
+                      )}
+                      {password && (
+                        <div className="text-sm mt-2 ml-1 space-y-1">
+                          {[
+                            { label: 'Must be at least 8 characters', valid: passwordValidations.length },
+                            { label: 'Must have at least one lowercase letter', valid: passwordValidations.lowercase },
+                            { label: 'Must have at least one uppercase letter', valid: passwordValidations.uppercase },
+                            { label: 'Must have at least one special character', valid: passwordValidations.specialChar },
+                          ].map((item, index) => (
+                            <div key={index} className="flex items-center space-x-2 text-sm text-gray-700">
+                              <div
+                                className={`w-3 h-3 rounded-full flex items-center justify-center ${
+                                  item.valid ? 'bg-green-600' : 'bg-gray-300'
+                                }`}
+                              >
+                                {item.valid && <CheckIcon className="w-3 h-3 text-white" />}
+                              </div>
+                              <span>{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {fieldErrors.confirmPassword && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.confirmPassword}</p>
-                    )}
-                  </div>
-                  <ReCAPTCHA
-                    ref={recaptchaRef}
-                    sitekey={RECAPTCHA_SITE_KEY}
-                    size="invisible"
-                    badge="bottomright"
-                    onErrored={() => {
-                      console.error('reCAPTCHA errored');
-                      setError('reCAPTCHA failed to load. Please try again.');
-                      resetRecaptcha();
-                    }}
-                    onExpired={() => {
-                      console.log('reCAPTCHA token expired');
-                      resetRecaptcha();
-                      executeRecaptcha();
-                    }}
-                    hl={language === 'en' ? 'en' : 'fil'}
-                  />
-                  <p className="text-xs text-blue-600">
-                    By clicking the Sign Up button, you therefore agree to the Privacy Policy. For more information, read about privacy{' '}
-                    <a href="#" className="underline">here</a>.
-                  </p>
-                  <button
-                    type="submit"
-                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors"
-                  >
-                    Sign Up
-                  </button>
-                  <p className="text-center text-sm mt-3">
-                    Already have an account?{' '}
-                    <a href="#" onClick={handleToggle} className="text-blue-600">
-                      Sign In
-                    </a>
-                  </p>
-                </>
-              )}
-            </form>
+                    <div className="relative">
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="Confirm Password"
+                          value={confirmPassword}
+                          onChange={(e) => handleInputChange('confirmPassword', e.target.value, setConfirmPassword)}
+                          className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
+                            fieldErrors.confirmPassword ? 'border-red-500 border-2' : 'focus:ring-blue-300'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center z-10"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeSlashIcon className="h-5 w-5 text-gray-500" />
+                          ) : (
+                            <EyeIcon className="h-5 w-5 text-gray-500" />
+                          )}
+                        </button>
+                      </div>
+                      {fieldErrors.confirmPassword && (
+                        <p className="text-red-500 text-xs mt-1">{fieldErrors.confirmPassword}</p>
+                      )}
+                    </div>
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      sitekey={RECAPTCHA_SITE_KEY}
+                      size="invisible"
+                      badge="bottomright"
+                      onErrored={() => {
+                        console.error('reCAPTCHA errored');
+                        setError('reCAPTCHA failed to load. Please try again.');
+                        resetRecaptcha();
+                      }}
+                      onExpired={() => {
+                        console.log('reCAPTCHA token expired');
+                        resetRecaptcha();
+                        executeRecaptcha();
+                      }}
+                      hl={language === 'en' ? 'en' : 'fil'}
+                    />
+                    <p className="text-xs text-blue-600">
+                      By clicking the Sign Up button, you therefore agree to the Privacy Policy. For more information, read about privacy{' '}
+                      <a href="#" className="underline">here</a>.
+                    </p>
+                    <button
+                      type="submit"
+                      className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors"
+                    >
+                      Sign Up
+                    </button>
+                    <p className="text-center text-sm mt-3">
+                      Already have an account?{' '}
+                      <a href="#" onClick={handleToggle} className="text-blue-600">
+                        Sign In
+                      </a>
+                    </p>
+                  </>
+                )}
+              </form>
+            </div>
+          </div>
+          <div className="text-center text-xs mt-6">
+            <a
+              href="https://www.facebook.com/DepEdTayoAlapan1ES"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center w-full"
+            >
+              <img src={alapan_fb} alt="DepEd Icon" className="w-4 h-4 mr-2" />
+              DepEd Tayo Alapan 1 ES - Imus City
+            </a>
           </div>
         </div>
-        <div className="text-center text-xs mt-6">
-          <a
-            href="https://www.facebook.com/DepEdTayoAlapan1ES"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center w-full"
-          >
-            <img src={alapan_fb} alt="DepEd Icon" className="w-4 h-4 mr-2" />
-            DepEd Tayo Alapan 1 ES - Imus City
-          </a>
-        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default AuthPage;
+  export default AuthPage;

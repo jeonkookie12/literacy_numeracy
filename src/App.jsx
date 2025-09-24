@@ -1,9 +1,10 @@
 import './index.css';
 import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import AuthPage from './pages/authPage';
 import PrivateRoute from './components/privroute';
 import Layout from './components/layout';
+import AuthPage from './pages/authPage';
+import VerificationPage from './pages/verificationPage';
 //Learner
 import LearnerDashboard from './pages/learner/learner_dashboard';
 //Teacher
@@ -41,6 +42,7 @@ function App() {
       <Routes>
         <Route path="/" element={<AuthPage />} />
         <Route path="/authpage" element={<AuthPage />} />
+        <Route path="/verify-email" element={<VerificationPage />} />
         
         <Route element={<Layout />}>
         {/*Learner Routes*/}

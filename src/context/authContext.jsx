@@ -24,6 +24,8 @@ export const AuthProvider = ({ children }) => {
             lrn: data.lrn,
             userType: data.user_type,
             firstName: data.first_name,
+            isEmailVerified: data.is_email_verified === 'yes',
+            email: data.email,
           };
           setUser(userData);
           console.log("Session Check - Current User Details:", {
@@ -31,7 +33,26 @@ export const AuthProvider = ({ children }) => {
             userId: userData.id || "Not available",
             lrn: userData.lrn || "Not available",
             firstName: userData.firstName || "Not available",
+            isEmailVerified: userData.isEmailVerified,
           });
+          if (!userData.isEmailVerified) {
+            localStorage.setItem('userEmail', userData.email);
+            navigate('/verify-email');
+          } else {
+            switch (userData.userType.toLowerCase()) {
+              case "learner":
+                navigate("/learner-dashboard");
+                break;
+              case "teacher":
+                navigate("/teacher-dashboard");
+                break;
+              case "admin":
+                navigate("/admin-dashboard");
+                break;
+              default:
+                navigate("/");
+            }
+          }
         } else {
           console.log("Session Check - No user logged in");
         }
@@ -45,7 +66,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
     checkAuth();
-  }, []);
+  }, [navigate]);
 
   const login = async (login, password, recaptchaToken) => {
     try {
@@ -62,6 +83,8 @@ export const AuthProvider = ({ children }) => {
           lrn: data.lrn,
           userType: data.user_type,
           firstName: data.first_name,
+          isEmailVerified: data.is_email_verified === 'yes',
+          email: data.email,
         };
         setUser(userData);
         console.log("Login - Current User Details:", {
@@ -69,21 +92,28 @@ export const AuthProvider = ({ children }) => {
           userId: userData.id || "Not available",
           lrn: userData.lrn || "Not available",
           firstName: userData.firstName || "Not available",
+          isEmailVerified: userData.isEmailVerified,
         });
-        switch (data.user_type.toLowerCase()) {
-          case "learner":
-            navigate("/learner-dashboard");
-            break;
-          case "teacher":
-            navigate("/teacher-dashboard");
-            break;
-          case "admin":
-            navigate("/admin-dashboard");
-            break;
-          default:
-            navigate("/");
+        if (!userData.isEmailVerified) {
+          localStorage.setItem('userEmail', userData.email);
+          navigate('/verify-email');
+          return { success: true, redirect: '/verify-email' };
+        } else {
+          switch (data.user_type.toLowerCase()) {
+            case "learner":
+              navigate("/learner-dashboard");
+              break;
+            case "teacher":
+              navigate("/teacher-dashboard");
+              break;
+            case "admin":
+              navigate("/admin-dashboard");
+              break;
+            default:
+              navigate("/");
+          }
+          return { success: true };
         }
-        return { success: true };
       } else {
         console.log("Login - Failed:", data.message || "Unknown error");
         return { success: false, message: data.message };
@@ -118,6 +148,8 @@ export const AuthProvider = ({ children }) => {
           lrn: lrn,
           firstName: firstName,
         });
+        localStorage.setItem('userEmail', email);
+        navigate('/verify-email');
         return { success: true, message: data.message || "Signup successful" };
       } else {
         console.log("Signup - Failed:", data.message || "Unknown error");
@@ -130,6 +162,39 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyEmail = async (verificationCode) => {
+    try {
+      const response = await fetch("http://localhost/literacynumeracy/verify_email.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ verificationCode }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setUser((prev) => ({ ...prev, isEmailVerified: true }));
+        const redirect = prev => {
+          switch (prev.userType.toLowerCase()) {
+            case "learner":
+              return "/learner-dashboard";
+            case "teacher":
+              return "/teacher-dashboard";
+            case "admin":
+              return "/admin-dashboard";
+            default:
+              return "/";
+          }
+        };
+        return { success: true, redirect: redirect(user) };
+      } else {
+        return { success: false, message: data.message || "Invalid verification code" };
+      }
+    } catch (error) {
+      console.error("Error verifying email:", error);
+      return { success: false, message: "An error occurred during verification" };
+    }
+  };
+
   const logout = async () => {
     try {
       await fetch("http://localhost/literacynumeracy/logout.php", {
@@ -137,6 +202,7 @@ export const AuthProvider = ({ children }) => {
         credentials: "include",
       });
       setUser(null);
+      localStorage.removeItem('userEmail');
       console.log("Logout - User cleared");
       navigate("/");
     } catch (error) {
@@ -146,7 +212,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, verifyEmail, logout, loading }}>
       {loading ? <Spinner /> : children}
     </AuthContext.Provider>
   );
