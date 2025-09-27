@@ -51,6 +51,9 @@ export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const userFirstName = user?.first_name || "User"; // Fallback if first_name is null
+  const profileButtonWidth = Math.max(80, Math.min(300, userFirstName.length * 10 + 60)); // Dynamic width: 10px per char + 60px for icon/padding
+
   // Update time every second
   useEffect(() => {
     const timer = setInterval(() => {
@@ -268,11 +271,12 @@ export function Layout() {
               {/* Profile Dropdown */}
               <div className="relative flex-shrink-0">
                 <button
-                  className="flex items-center gap-1 sm:gap-2 md:gap-2 bg-white shadow rounded-xl px-3 sm:px-3 md:px-3 lg:px-4 h-12 sm:h-12 md:h-12 lg:h-12 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-1 sm:gap-2 md:gap-2 bg-white shadow rounded-xl px-3 sm:px-3 md:px-3 lg:px-4 h-12 sm:h-12 md:h-12 lg:h-12 hover:bg-gray-100 transition-colors"
+                  style={{ minWidth: `${profileButtonWidth}px` }}
                   onClick={toggleDropdown}
                 >
                   <img src={ProfileIcon} alt="User" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                  <span className="text-gray-800 font-medium text-sm sm:text-sm md:text-base lg:text-[16px] truncate">James</span>
+                  <span className="text-gray-800 font-medium text-sm sm:text-sm md:text-base lg:text-[16px] truncate">{user.firstName}</span>
                   <img src={ChevronDownIcon} alt="Dropdown" className="w-5 h-5 sm:w-5 md:w-5 lg:w-4 sm:h-5 md:h-5 lg:h-4" />
                 </button>
                 {isDropdownOpen && (

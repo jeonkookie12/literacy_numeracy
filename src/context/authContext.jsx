@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Spinner from "./spinner"; 
 
 export const AuthContext = createContext();
@@ -8,9 +8,11 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const checkAuth = async () => {
+      console.log("AuthProvider - Running session check for path:", location.pathname);
       try {
         const response = await fetch("http://localhost/literacynumeracy/check_session.php", {
           method: "GET",
@@ -27,18 +29,51 @@ export const AuthProvider = ({ children }) => {
             isEmailVerified: data.is_email_verified === 'yes',
             email: data.email,
           };
-          setUser(userData);
+          // Only update user if different to avoid loops
+          if (!user || user.id !== userData.id) {
+            setUser(userData);
+          }
           console.log("Session Check - Current User Details:", {
             userType: userData.userType || "Not available",
             userId: userData.id || "Not available",
             lrn: userData.lrn || "Not available",
-            firstName: userData.firstName || "Not available",
+            firstName: userData.first_name || "Not available",
             isEmailVerified: userData.isEmailVerified,
           });
+
+          // Handle email verification
           if (!userData.isEmailVerified) {
             localStorage.setItem('userEmail', userData.email);
-            navigate('/verify-email');
-          } else {
+            if (location.pathname !== '/verify-email') {
+              navigate('/verify-email');
+            }
+            return;
+          }
+
+          // Define valid paths per user type (expand as needed)
+          const getValidPaths = (userType) => {
+            const lowers = userType.toLowerCase();
+            if (lowers === 'admin') {
+              return [
+                '/admin-dashboard', '/manage-users', '/admin-resources', '/admin-analytics',
+                '/manage-users/learners', '/manage-users/teachers', '/manage-users/admins',
+                '/manage-users/learners/section-details'
+              ];
+            } else if (lowers === 'teacher') {
+              return ['/teacher-dashboard', '/class-masterlist', '/teacher-materials', '/intervention-schedule'];
+            } else if (lowers === 'learner') {
+              return ['/learner-dashboard'];
+            }
+            return [];
+          };
+
+          const validPaths = getValidPaths(userData.userType);
+          const isCurrentPathValid = validPaths.some(path => 
+            location.pathname === path || location.pathname.startsWith(path)
+          );
+
+          // Only redirect if on invalid path (e.g., / or unauthorized)
+          if (!isCurrentPathValid) {
             switch (userData.userType.toLowerCase()) {
               case "learner":
                 navigate("/learner-dashboard");
@@ -55,10 +90,14 @@ export const AuthProvider = ({ children }) => {
           }
         } else {
           console.log("Session Check - No user logged in");
+          if (location.pathname !== '/') {
+            navigate('/');
+          }
         }
       } catch (error) {
         console.error("Error checking auth:", error);
         console.log("Session Check - Error, no user data available");
+        navigate('/');
       } finally {
         setTimeout(() => {
           setLoading(false);
@@ -66,7 +105,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
     checkAuth();
-  }, [navigate]);
+  }, [navigate, location.pathname, user?.id]); // Add location.pathname and user?.id to deps; re-run only if path changes or user ID differs
 
   const login = async (login, password, recaptchaToken) => {
     try {
