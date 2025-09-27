@@ -28,8 +28,8 @@ export const AuthProvider = ({ children }) => {
             firstName: data.first_name,
             isEmailVerified: data.is_email_verified === 'yes',
             email: data.email,
+            enrollmentStatus: data.enrollmentStatus || { isEnrolled: false, enrollmentYear: 'pending' },
           };
-          // Only update user if different to avoid loops
           if (!user || user.id !== userData.id) {
             setUser(userData);
           }
@@ -37,20 +37,36 @@ export const AuthProvider = ({ children }) => {
             userType: userData.userType || "Not available",
             userId: userData.id || "Not available",
             lrn: userData.lrn || "Not available",
-            firstName: userData.first_name || "Not available",
+            firstName: userData.firstName || "Not available",
             isEmailVerified: userData.isEmailVerified,
+            enrollmentStatus: userData.enrollmentStatus,
           });
 
-          // Handle email verification
-          if (!userData.isEmailVerified) {
+          // Handle email verification and enrollment for learners
+          if (userData.userType.toLowerCase() === 'learner') {
+            if (!userData.isEmailVerified || !userData.enrollmentStatus.isEnrolled) {
+              if (location.pathname !== '/verification-page') {
+                console.log("Redirecting learner to /verification-page: isEmailVerified=", userData.isEmailVerified, "isEnrolled=", userData.enrollmentStatus.isEnrolled);
+                navigate('/verification-page');
+              }
+              return;
+            }
+            // Redirect enrolled learners to learner-dashboard
+            if (location.pathname === '/verification-page') {
+              console.log("Redirecting enrolled learner to /learner-dashboard");
+              navigate('/learner-dashboard');
+              return;
+            }
+          } else if (!userData.isEmailVerified) {
             localStorage.setItem('userEmail', userData.email);
-            if (location.pathname !== '/verify-email') {
-              navigate('/verify-email');
+            if (location.pathname !== '/verification-page') {
+              console.log("Redirecting non-learner to /verification-page: isEmailVerified=", userData.isEmailVerified);
+              navigate('/verification-page');
             }
             return;
           }
 
-          // Define valid paths per user type (expand as needed)
+          // Define valid paths per user type
           const getValidPaths = (userType) => {
             const lowers = userType.toLowerCase();
             if (lowers === 'admin') {
@@ -62,7 +78,7 @@ export const AuthProvider = ({ children }) => {
             } else if (lowers === 'teacher') {
               return ['/teacher-dashboard', '/class-masterlist', '/teacher-materials', '/intervention-schedule'];
             } else if (lowers === 'learner') {
-              return ['/learner-dashboard'];
+              return ['/learner-dashboard', '/verification-page'];
             }
             return [];
           };
@@ -72,8 +88,8 @@ export const AuthProvider = ({ children }) => {
             location.pathname === path || location.pathname.startsWith(path)
           );
 
-          // Only redirect if on invalid path (e.g., / or unauthorized)
           if (!isCurrentPathValid) {
+            console.log("Redirecting to default dashboard: userType=", userData.userType);
             switch (userData.userType.toLowerCase()) {
               case "learner":
                 navigate("/learner-dashboard");
@@ -105,7 +121,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
     checkAuth();
-  }, [navigate, location.pathname, user?.id]); // Add location.pathname and user?.id to deps; re-run only if path changes or user ID differs
+  }, [navigate, location.pathname, user?.id]); 
 
   const login = async (login, password, recaptchaToken) => {
     try {
@@ -124,6 +140,7 @@ export const AuthProvider = ({ children }) => {
           firstName: data.first_name,
           isEmailVerified: data.is_email_verified === 'yes',
           email: data.email,
+          enrollmentStatus: data.enrollmentStatus || { isEnrolled: false, enrollmentYear: 'pending' },
         };
         setUser(userData);
         console.log("Login - Current User Details:", {
@@ -132,11 +149,12 @@ export const AuthProvider = ({ children }) => {
           lrn: userData.lrn || "Not available",
           firstName: userData.firstName || "Not available",
           isEmailVerified: userData.isEmailVerified,
+          enrollmentStatus: userData.enrollmentStatus,
         });
-        if (!userData.isEmailVerified) {
+        if (!userData.isEmailVerified || (userData.userType.toLowerCase() === 'learner' && !userData.enrollmentStatus.isEnrolled)) {
           localStorage.setItem('userEmail', userData.email);
-          navigate('/verify-email');
-          return { success: true, redirect: '/verify-email' };
+          navigate('/verification-page');
+          return { success: true, redirect: '/verification-page' };
         } else {
           switch (data.user_type.toLowerCase()) {
             case "learner":
@@ -151,7 +169,7 @@ export const AuthProvider = ({ children }) => {
             default:
               navigate("/");
           }
-          return { success: true };
+          return { success: true, redirect: `/${data.user_type.toLowerCase()}-dashboard` };
         }
       } else {
         console.log("Login - Failed:", data.message || "Unknown error");
@@ -181,14 +199,24 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await response.json();
       if (data.success) {
+        setUser({
+          id: data.user_id,
+          lrn: data.lrn,
+          userType: data.user_type,
+          firstName: firstName,
+          isEmailVerified: data.is_email_verified === 'yes',
+          email: data.email,
+          enrollmentStatus: data.enrollmentStatus || { isEnrolled: false, enrollmentYear: 'pending' },
+        });
         console.log("Signup - Success:", {
           message: data.message || "Signup successful",
           userId: data.user_id || "Not provided",
           lrn: lrn,
           firstName: firstName,
+          enrollmentStatus: data.enrollmentStatus,
         });
         localStorage.setItem('userEmail', email);
-        navigate('/verify-email');
+        navigate('/verification-page');
         return { success: true, message: data.message || "Signup successful" };
       } else {
         console.log("Signup - Failed:", data.message || "Unknown error");
@@ -211,20 +239,21 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await response.json();
       if (data.success) {
-        setUser((prev) => ({ ...prev, isEmailVerified: true }));
-        const redirect = prev => {
-          switch (prev.userType.toLowerCase()) {
-            case "learner":
-              return "/learner-dashboard";
-            case "teacher":
-              return "/teacher-dashboard";
-            case "admin":
-              return "/admin-dashboard";
-            default:
-              return "/";
-          }
+        const updatedUser = {
+          id: data.user_id,
+          lrn: data.lrn,
+          userType: data.user_type,
+          firstName: data.first_name,
+          isEmailVerified: true,
+          email: data.email,
+          enrollmentStatus: data.enrollmentStatus || { isEnrolled: false, enrollmentYear: 'pending' },
         };
-        return { success: true, redirect: redirect(user) };
+        setUser(updatedUser);
+        const redirectPath = updatedUser.userType.toLowerCase() === 'learner' && !updatedUser.enrollmentStatus.isEnrolled
+          ? '/verification-page'
+          : `/${updatedUser.userType.toLowerCase()}-dashboard` || '/';
+        navigate(redirectPath);
+        return { success: true, redirect: redirectPath };
       } else {
         return { success: false, message: data.message || "Invalid verification code" };
       }

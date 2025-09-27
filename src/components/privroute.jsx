@@ -11,6 +11,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     user,
     userType: user?.userType || "Not available",
     isEmailVerified: user?.isEmailVerified || "Not available",
+    enrollmentStatus: user?.enrollmentStatus || "Not available",
     allowedRoles,
     currentPath,
     loading,
@@ -27,13 +28,14 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   }
 
   // Special handling for /verify-email
-  if (currentPath === '/verify-email') {
-    if (user.isEmailVerified) {
-      console.log("PrivateRoute - Email already verified, redirecting to dashboard");
-      // Redirect to appropriate dashboard based on userType
+  if (currentPath === '/verification-page') {
+    if (user.userType.toLowerCase() === 'learner' && user.isEmailVerified && user.enrollmentStatus?.isEnrolled) {
+      console.log("PrivateRoute - Learner enrolled, redirecting to /learner-dashboard");
+      return <Navigate to="/learner-dashboard" replace />;
+    }
+    if (user.userType.toLowerCase() !== 'learner' && user.isEmailVerified) {
+      console.log("PrivateRoute - Non-learner email verified, redirecting to dashboard");
       switch (user.userType.toLowerCase()) {
-        case 'learner':
-          return <Navigate to="/learner-dashboard" replace />;
         case 'teacher':
           return <Navigate to="/teacher-dashboard" replace />;
         case 'admin':
@@ -42,9 +44,18 @@ const PrivateRoute = ({ children, allowedRoles }) => {
           return <Navigate to="/" replace />;
       }
     }
-    // Allow access to /verify-email if email is not verified
-    console.log("PrivateRoute - Access granted to /verify-email (email not verified)");
+    console.log("PrivateRoute - Access granted to verification-page");
     return children;
+  }
+
+  // Prevent learners from accessing /learner-dashboard if not enrolled
+  if (
+    user.userType.toLowerCase() === 'learner' &&
+    currentPath.includes('learner-dashboard') &&
+    !user.enrollmentStatus?.isEnrolled
+  ) {
+    console.log("PrivateRoute - Learner not enrolled, redirecting to /verification-page");
+    return <Navigate to="/verification-page" replace />;
   }
 
   if (!allowedRoles.includes(user.userType.toLowerCase())) {

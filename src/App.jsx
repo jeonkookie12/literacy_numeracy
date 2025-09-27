@@ -42,7 +42,7 @@ function App() {
       <Routes>
         <Route path="/" element={<AuthPage />} />
         <Route path="/authpage" element={<AuthPage />} />
-        <Route path="/verify-email" element={<VerificationPage />} />
+        <Route path="/verification-page" element={<VerificationPage />} />
         
         <Route element={<Layout />}>
         {/*Learner Routes*/}
