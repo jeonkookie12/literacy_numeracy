@@ -18,6 +18,9 @@ export const AuthProvider = ({ children }) => {
           method: "GET",
           credentials: "include",
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         console.log("Session Check - Raw Backend Response:", data);
         if (data.isLoggedIn) {
@@ -42,7 +45,6 @@ export const AuthProvider = ({ children }) => {
             enrollmentStatus: userData.enrollmentStatus,
           });
 
-          // Handle email verification and enrollment for learners
           if (userData.userType.toLowerCase() === 'learner') {
             if (!userData.isEmailVerified || !userData.enrollmentStatus.isEnrolled) {
               if (location.pathname !== '/verification-page') {
@@ -51,7 +53,6 @@ export const AuthProvider = ({ children }) => {
               }
               return;
             }
-            // Redirect enrolled learners to learner-dashboard
             if (location.pathname === '/verification-page') {
               console.log("Redirecting enrolled learner to /learner-dashboard");
               navigate('/learner-dashboard');
@@ -66,7 +67,6 @@ export const AuthProvider = ({ children }) => {
             return;
           }
 
-          // Define valid paths per user type
           const getValidPaths = (userType) => {
             const lowers = userType.toLowerCase();
             if (lowers === 'admin') {
@@ -131,6 +131,11 @@ export const AuthProvider = ({ children }) => {
         credentials: "include",
         body: JSON.stringify({ login, password, recaptchaToken }),
       });
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Login - HTTP error:", response.status, text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       if (data.success) {
         const userData = {
@@ -184,6 +189,7 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (firstName, lastName, lrn, email, password, recaptchaToken) => {
     try {
+      console.log("Signup - Attempting with:", { firstName, lastName, lrn, email, recaptchaToken: recaptchaToken ? 'valid' : 'missing' });
       const response = await fetch("http://localhost/literacynumeracy/signup.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -197,22 +203,29 @@ export const AuthProvider = ({ children }) => {
           recaptchaToken,
         }),
       });
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Signup - HTTP error:", response.status, text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
+      console.log("Signup - Raw Backend Response:", data);
       if (data.success) {
-        setUser({
+        const userData = {
           id: data.user_id,
           lrn: data.lrn,
           userType: data.user_type,
-          firstName: firstName,
+          firstName: data.first_name || firstName, // Fallback to input if not provided
           isEmailVerified: data.is_email_verified === 'yes',
           email: data.email,
           enrollmentStatus: data.enrollmentStatus || { isEnrolled: false, enrollmentYear: 'pending' },
-        });
+        };
+        setUser(userData);
         console.log("Signup - Success:", {
           message: data.message || "Signup successful",
           userId: data.user_id || "Not provided",
-          lrn: lrn,
-          firstName: firstName,
+          lrn: data.lrn,
+          firstName: userData.firstName,
           enrollmentStatus: data.enrollmentStatus,
         });
         localStorage.setItem('userEmail', email);
@@ -225,7 +238,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Error signing up:", error);
       console.log("Signup - Error, no user data available");
-      return { success: false, message: "An error occurred during signup" };
+      return { success: false, message: error.message || "An error occurred during signup" };
     }
   };
 
@@ -237,6 +250,11 @@ export const AuthProvider = ({ children }) => {
         credentials: "include",
         body: JSON.stringify({ verificationCode }),
       });
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Verify Email - HTTP error:", response.status, text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       if (data.success) {
         const updatedUser = {
@@ -255,20 +273,27 @@ export const AuthProvider = ({ children }) => {
         navigate(redirectPath);
         return { success: true, redirect: redirectPath };
       } else {
+        console.log("Verify Email - Failed:", data.message || "Unknown error");
         return { success: false, message: data.message || "Invalid verification code" };
       }
     } catch (error) {
       console.error("Error verifying email:", error);
-      return { success: false, message: "An error occurred during verification" };
+      console.log("Verify Email - Error, no user data available");
+      return { success: false, message: error.message || "An error occurred during verification" };
     }
   };
 
   const logout = async () => {
     try {
-      await fetch("http://localhost/literacynumeracy/logout.php", {
+      const response = await fetch("http://localhost/literacynumeracy/logout.php", {
         method: "POST",
         credentials: "include",
       });
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Logout - HTTP error:", response.status, text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       setUser(null);
       localStorage.removeItem('userEmail');
       console.log("Logout - User cleared");
@@ -276,6 +301,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Error logging out:", error);
       console.log("Logout - Error occurred");
+      return { success: false, message: error.message || "An error occurred during logout" };
     }
   };
 

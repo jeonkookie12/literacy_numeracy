@@ -11,7 +11,6 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     user,
     userType: user?.userType || "Not available",
     isEmailVerified: user?.isEmailVerified || "Not available",
-    enrollmentStatus: user?.enrollmentStatus || "Not available",
     allowedRoles,
     currentPath,
     loading,
@@ -27,15 +26,13 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/" replace />;
   }
 
-  // Special handling for /verify-email
+  // Special handling for /verification-page
   if (currentPath === '/verification-page') {
-    if (user.userType.toLowerCase() === 'learner' && user.isEmailVerified && user.enrollmentStatus?.isEnrolled) {
-      console.log("PrivateRoute - Learner enrolled, redirecting to /learner-dashboard");
-      return <Navigate to="/learner-dashboard" replace />;
-    }
-    if (user.userType.toLowerCase() !== 'learner' && user.isEmailVerified) {
-      console.log("PrivateRoute - Non-learner email verified, redirecting to dashboard");
+    if (user.isEmailVerified) {
+      console.log("PrivateRoute - Email verified, redirecting to dashboard");
       switch (user.userType.toLowerCase()) {
+        case 'learner':
+          return <Navigate to="/learner-dashboard" replace />;
         case 'teacher':
           return <Navigate to="/teacher-dashboard" replace />;
         case 'admin':
@@ -48,16 +45,13 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     return children;
   }
 
-  // Prevent learners from accessing /learner-dashboard if not enrolled
-  if (
-    user.userType.toLowerCase() === 'learner' &&
-    currentPath.includes('learner-dashboard') &&
-    !user.enrollmentStatus?.isEnrolled
-  ) {
-    console.log("PrivateRoute - Learner not enrolled, redirecting to /verification-page");
+  // Redirect to /verification-page if email is not verified
+  if (!user.isEmailVerified) {
+    console.log("PrivateRoute - Email not verified, redirecting to /verification-page");
     return <Navigate to="/verification-page" replace />;
   }
 
+  // Check if userType is allowed for the route
   if (!allowedRoles.includes(user.userType.toLowerCase())) {
     console.log(
       `PrivateRoute - Access denied, userType "${user.userType.toLowerCase()}" not in allowedRoles`,
