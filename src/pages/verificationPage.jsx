@@ -5,10 +5,13 @@ import A1ES from '../assets/auth/A1ES.svg';
 import PendingIcon from '../assets/auth/pending.svg'; 
 
 const VerificationPage = () => {
-  const { verifyEmail, logout, user } = useContext(AuthContext);
+  const { logout, user, setUser } = useContext(AuthContext);
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const navigate = useNavigate();
 
   // Redirect unauthorized users
@@ -17,6 +20,16 @@ const VerificationPage = () => {
       navigate('/');
     }
   }, [user, navigate]);
+
+  // Handle success modal redirect
+  useEffect(() => {
+    if (showSuccessModal) {
+      const timer = setTimeout(() => {
+        navigate('/');
+      }, 2000); // Redirect after 2 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessModal, navigate]);
 
   const handleInputChange = (index, value) => {
     const cleanedValue = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -33,6 +46,44 @@ const VerificationPage = () => {
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !code[index] && index > 0) {
       document.getElementById(`code-input-${index - 1}`).focus();
+    }
+  };
+
+  const verifyEmail = async (verificationCode) => {
+    try {
+      const response = await fetch("http://localhost/literacynumeracy/verify_email.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ verificationCode }),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Verify Email - HTTP error:", response.status, text);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.success) {
+        const updatedUser = {
+          id: data.user_id,
+          lrn: data.lrn,
+          userType: data.user_type,
+          firstName: data.first_name,
+          isEmailVerified: true,
+          email: data.email,
+          enrollmentStatus: data.enrollmentStatus || { isEnrolled: false, enrollmentYear: 'pending' },
+        };
+        setUser(updatedUser);
+        console.log("Verify Email - Success, showing success modal");
+        return { success: true };
+      } else {
+        console.log("Verify Email - Failed:", data.message || "Unknown error");
+        return { success: false, message: data.message || "Invalid verification code" };
+      }
+    } catch (error) {
+      console.error("Error verifying email:", error);
+      console.log("Verify Email - Error, no user data available");
+      return { success: false, message: error.message || "An error occurred during verification" };
     }
   };
 
@@ -53,7 +104,7 @@ const VerificationPage = () => {
         if (user?.userType.toLowerCase() === 'learner' && !user.enrollmentStatus?.isEnrolled) {
           setSuccess('Your email is verified, but your enrollment is pending admin approval.');
         } else {
-          navigate(result.redirect);
+          setShowSuccessModal(true);
         }
       } else {
         setError(result.message || 'Invalid verification code');
@@ -67,6 +118,7 @@ const VerificationPage = () => {
   const handleResendCode = async () => {
     setError('');
     setSuccess('');
+    setIsResending(true);
     try {
       const response = await fetch('http://localhost/literacynumeracy/resend_email.php', {
         method: 'POST',
@@ -76,13 +128,20 @@ const VerificationPage = () => {
       const result = await response.json();
       console.log('Resend email response:', result);
       if (result.success) {
+        setResendSuccess(true);
         setSuccess(result.message || 'A new verification code has been sent to your email');
+        setTimeout(() => {
+          setIsResending(false);
+          setResendSuccess(false);
+        }, 2000); // Close modal after 2 seconds
       } else {
         setError(result.message || 'Failed to resend verification code');
+        setIsResending(false);
       }
     } catch (err) {
       console.error('Resend email failed:', err.message);
       setError('Failed to connect to server. Please try again.');
+      setIsResending(false);
     }
   };
 
@@ -96,6 +155,81 @@ const VerificationPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col p-4 sm:p-8">
+      {/* Resend Email Modal */}
+      {isResending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+            {resendSuccess ? (
+              <>
+                <div className="relative w-16 h-16 mb-4">
+                  <svg
+                    className="w-16 h-16 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <svg
+                    className="absolute top-0 right-0 w-6 h-6 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <p className="text-lg font-semibold text-gray-700">Email Sent Successfully</p>
+              </>
+            ) : (
+              <>
+                <div className="flex space-x-2 mb-4">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+                <p className="text-lg font-semibold text-gray-700">Resending email . . .</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Verification Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <svg
+              className="w-16 h-16 text-green-500 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <p className="text-lg font-semibold text-gray-700">Email Successfully Verified</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-3">
           <img src={A1ES} alt="Alapan 1 Elementary School Logo" className="w-12 h-12" />
@@ -169,7 +303,7 @@ const VerificationPage = () => {
                 {error}
               </div>
             )}
-            {success && (
+            {success && !showSuccessModal && (
               <div className="mb-4 p-3 bg-green-100 border-green-400 text-green-700 text-sm rounded-lg text-center flex items-center justify-center">
                 <svg
                   className="w-5 h-5 mr-2"

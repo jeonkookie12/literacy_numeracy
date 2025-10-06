@@ -109,7 +109,8 @@ function Sidebar({ open, setOpen, setTitle }) {
     }
   }, [location.pathname, setTitle, menuItems, navigate]);
 
-  const go = (path, label) => {
+  const go = (e, path, label) => {
+    e.preventDefault(); // Prevent default link navigation
     setTitle(label);
     if (window.innerWidth < 1024) setOpen(false);
     navigate(path);
@@ -163,8 +164,9 @@ function Sidebar({ open, setOpen, setTitle }) {
               const active = location.pathname === path || (subItems && subItems.some((sub) => sub.path === location.pathname));
               return (
                 <div key={label}>
-                  <div
-                    onClick={() => go(path, label)}
+                  <a
+                    href={path}
+                    onClick={(e) => go(e, path, label)}
                     className={`flex items-center px-3.5 py-2.5 rounded-lg text-sm font-medium cursor-pointer
                       ${active ? "bg-white text-black" : "text-black hover:bg-white/30"}
                       transition-all duration-200 ease-in-out`}
@@ -194,15 +196,16 @@ function Sidebar({ open, setOpen, setTitle }) {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </a>
                   {subItems && open && isManageUsersOpen && (
                     <div className="ml-10 space-y-1.5 mt-1.5">
                       {subItems.map(({ label: subLabel, path: subPath }) => {
                         const subActive = location.pathname === subPath;
                         return (
-                          <div
+                          <a
                             key={subLabel}
-                            onClick={() => go(subPath, subLabel)}
+                            href={subPath}
+                            onClick={(e) => go(e, subPath, subLabel)}
                             className={`flex items-center px-3.5 py-2 rounded-lg text-sm font-medium cursor-pointer
                               ${subActive ? "bg-white text-black" : "text-black hover:bg-white/30"}
                               transition-all duration-200 ease-in-out`}
@@ -215,7 +218,7 @@ function Sidebar({ open, setOpen, setTitle }) {
                             >
                               {subLabel}
                             </span>
-                          </div>
+                          </a>
                         );
                       })}
                     </div>

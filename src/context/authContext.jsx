@@ -45,25 +45,22 @@ export const AuthProvider = ({ children }) => {
             enrollmentStatus: userData.enrollmentStatus,
           });
 
+          // Allow verification page to handle its own logic
+          if (location.pathname === '/verification-page') {
+            console.log("AuthProvider - On verification-page, skipping redirect");
+            return;
+          }
+
           if (userData.userType.toLowerCase() === 'learner') {
             if (!userData.isEmailVerified || !userData.enrollmentStatus.isEnrolled) {
-              if (location.pathname !== '/verification-page') {
-                console.log("Redirecting learner to /verification-page: isEmailVerified=", userData.isEmailVerified, "isEnrolled=", userData.enrollmentStatus.isEnrolled);
-                navigate('/verification-page');
-              }
-              return;
-            }
-            if (location.pathname === '/verification-page') {
-              console.log("Redirecting enrolled learner to /learner-dashboard");
-              navigate('/learner-dashboard');
+              console.log("Redirecting learner to /verification-page: isEmailVerified=", userData.isEmailVerified, "isEnrolled=", userData.enrollmentStatus.isEnrolled);
+              navigate('/verification-page');
               return;
             }
           } else if (!userData.isEmailVerified) {
             localStorage.setItem('userEmail', userData.email);
-            if (location.pathname !== '/verification-page') {
-              console.log("Redirecting non-learner to /verification-page: isEmailVerified=", userData.isEmailVerified);
-              navigate('/verification-page');
-            }
+            console.log("Redirecting non-learner to /verification-page: isEmailVerified=", userData.isEmailVerified);
+            navigate('/verification-page');
             return;
           }
 
@@ -78,7 +75,7 @@ export const AuthProvider = ({ children }) => {
             } else if (lowers === 'teacher') {
               return ['/teacher-dashboard', '/class-masterlist', '/teacher-materials', '/intervention-schedule'];
             } else if (lowers === 'learner') {
-              return ['/learner-dashboard', '/verification-page'];
+              return ['/learner-dashboard'];
             }
             return [];
           };
@@ -215,7 +212,7 @@ export const AuthProvider = ({ children }) => {
           id: data.user_id,
           lrn: data.lrn,
           userType: data.user_type,
-          firstName: data.first_name || firstName, // Fallback to input if not provided
+          firstName: data.first_name || firstName,
           isEmailVerified: data.is_email_verified === 'yes',
           email: data.email,
           enrollmentStatus: data.enrollmentStatus || { isEnrolled: false, enrollmentYear: 'pending' },
@@ -242,47 +239,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const verifyEmail = async (verificationCode) => {
-    try {
-      const response = await fetch("http://localhost/literacynumeracy/verify_email.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ verificationCode }),
-      });
-      if (!response.ok) {
-        const text = await response.text();
-        console.error("Verify Email - HTTP error:", response.status, text);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        const updatedUser = {
-          id: data.user_id,
-          lrn: data.lrn,
-          userType: data.user_type,
-          firstName: data.first_name,
-          isEmailVerified: true,
-          email: data.email,
-          enrollmentStatus: data.enrollmentStatus || { isEnrolled: false, enrollmentYear: 'pending' },
-        };
-        setUser(updatedUser);
-        const redirectPath = updatedUser.userType.toLowerCase() === 'learner' && !updatedUser.enrollmentStatus.isEnrolled
-          ? '/verification-page'
-          : `/${updatedUser.userType.toLowerCase()}-dashboard` || '/';
-        navigate(redirectPath);
-        return { success: true, redirect: redirectPath };
-      } else {
-        console.log("Verify Email - Failed:", data.message || "Unknown error");
-        return { success: false, message: data.message || "Invalid verification code" };
-      }
-    } catch (error) {
-      console.error("Error verifying email:", error);
-      console.log("Verify Email - Error, no user data available");
-      return { success: false, message: error.message || "An error occurred during verification" };
-    }
-  };
-
   const logout = async () => {
     try {
       const response = await fetch("http://localhost/literacynumeracy/logout.php", {
@@ -306,7 +262,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, verifyEmail, logout, loading }}>
+    <AuthContext.Provider value={{ user, setUser, login, signup, logout, loading }}>
       {loading ? <Spinner /> : children}
     </AuthContext.Provider>
   );

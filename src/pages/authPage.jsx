@@ -7,6 +7,7 @@ import students from '../assets/auth/students.png';
 import alapan_fb from '../assets/auth/fb.svg';
 import languagee from '../assets/auth/language.svg';
 import { useNavigate } from 'react-router-dom';
+import Loader from './loader';
 
 const AuthPage = () => {
   const { login, signup } = useContext(AuthContext);
@@ -23,6 +24,7 @@ const AuthPage = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); 
   const [fieldErrors, setFieldErrors] = useState({
     firstName: '',
     lastName: '',
@@ -34,8 +36,8 @@ const AuthPage = () => {
   const recaptchaRef = useRef(null);
   const navigate = useNavigate();
 
-  const RECAPTCHA_SITE_KEY = '6LcRcdMrAAAAANuoo8JqmjPQCBz7VWFYA3Ggc2y3';
-
+  const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  
   // Password validation logic
   const passwordValidations = {
     length: password.length >= 8,
@@ -126,13 +128,18 @@ const AuthPage = () => {
   const handleLrnVerification = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
     const lrnError = validateLrn(lrn);
     setFieldErrors((prev) => ({ ...prev, lrn: lrnError }));
-    if (lrnError) return;
+    if (lrnError) {
+      setIsLoading(false);
+      return;
+    }
 
     const token = await executeRecaptcha();
     if (!token) {
       setError('Please complete the reCAPTCHA verification');
+      setIsLoading(false);
       return;
     }
 
@@ -150,10 +157,10 @@ const AuthPage = () => {
       const result = await response.json();
       console.log('LRN verification response:', result);
       if (result.success) {
-        setIsLrnStep(false); // Proceed to the signup form
+        setIsLrnStep(false);
       } else {
         setError(result.message || 'Failed to verify LRN. Please try again.');
-        setLrn(''); // Clear LRN field
+        setLrn('');
         setFieldErrors((prev) => ({ ...prev, lrn: '' }));
         resetRecaptcha();
       }
@@ -161,16 +168,20 @@ const AuthPage = () => {
       console.error('LRN verification failed:', err.message);
       setError('Failed to connect to server. Please try again.');
       resetRecaptcha();
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true); 
     console.log('Starting login process...');
     const token = await executeRecaptcha();
     if (!token) {
       setError('Please complete the reCAPTCHA verification');
+      setIsLoading(false);
       return;
     }
     const trimmedUsername = username.trim();
@@ -188,12 +199,15 @@ const AuthPage = () => {
       console.error('Login request failed:', err.message, err);
       setError('Failed to connect to server. Please try again.');
       resetRecaptcha();
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     // Validate all fields
     const errors = {
@@ -207,14 +221,14 @@ const AuthPage = () => {
 
     setFieldErrors(errors);
 
-    // Check if any validation errors exist
     if (Object.values(errors).some((error) => error !== '')) {
+      setIsLoading(false);
       return;
     }
 
-    // Check password validations
     if (!Object.values(passwordValidations).every((valid) => valid)) {
       setError('Password does not meet all requirements');
+      setIsLoading(false);
       return;
     }
 
@@ -222,6 +236,7 @@ const AuthPage = () => {
     const token = await executeRecaptcha();
     if (!token) {
       setError('Please complete the reCAPTCHA verification');
+      setIsLoading(false);
       return;
     }
     const trimmedFirstName = firstName.trim();
@@ -262,12 +277,13 @@ const AuthPage = () => {
         setShowConfirmPassword(false);
         setError('Signup successful! Please check your email for the verification code.');
         resetRecaptcha();
-        navigate('/verify-email');
       }
     } catch (err) {
       console.error('Signup failed:', err.message);
       setError('Failed to connect to server. Please try again.');
       resetRecaptcha();
+    } finally {
+      setIsLoading(false); 
     }
   };
 
@@ -365,6 +381,7 @@ const AuthPage = () => {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="relative">
@@ -375,11 +392,13 @@ const AuthPage = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        disabled={isLoading}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute inset-y-0 right-0 pr-3 flex items-center z-10"
+                        disabled={isLoading}
                       >
                         {showPassword ? (
                           <EyeSlashIcon className="h-5 w-5 text-gray-500" />
@@ -391,7 +410,7 @@ const AuthPage = () => {
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <label className="flex items-center">
-                      <input type="checkbox" className="mr-2 w-4 h-4" /> Remember me
+                      <input type="checkbox" className="mr-2 w-4 h-4" disabled={isLoading} /> Remember me
                     </label>
                     <a href="#" className="text-blue-600">Forgot password?</a>
                   </div>
@@ -414,9 +433,10 @@ const AuthPage = () => {
                   />
                   <button
                     type="submit"
-                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors"
+                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors flex items-center justify-center"
+                    disabled={isLoading}
                   >
-                    Login
+                    {isLoading ? <Loader /> : 'Login'}
                   </button>
                   <p className="text-center text-sm mt-3">
                     Don't have an account?{' '}
@@ -436,6 +456,7 @@ const AuthPage = () => {
                       className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
                         fieldErrors.lrn ? 'border-red-500 border-2' : 'focus:ring-blue-300'
                       }`}
+                      disabled={isLoading}
                     />
                     {fieldErrors.lrn && (
                       <p className="text-red-500 text-xs mt-1">{fieldErrors.lrn}</p>
@@ -460,9 +481,10 @@ const AuthPage = () => {
                   />
                   <button
                     type="submit"
-                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors"
+                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors flex items-center justify-center"
+                    disabled={isLoading}
                   >
-                    Continue
+                    {isLoading ? <Loader /> : 'Continue'}
                   </button>
                   <p className="text-center text-sm mt-3">
                     Already have an account?{' '}
@@ -483,6 +505,7 @@ const AuthPage = () => {
                         className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
                           fieldErrors.firstName ? 'border-red-500 border-2' : 'focus:ring-blue-300'
                         }`}
+                        disabled={isLoading}
                       />
                       {fieldErrors.firstName && (
                         <p className="text-red-500 text-xs mt-1">{fieldErrors.firstName}</p>
@@ -497,6 +520,7 @@ const AuthPage = () => {
                         className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
                           fieldErrors.lastName ? 'border-red-500 border-2' : 'focus:ring-blue-300'
                         }`}
+                        disabled={isLoading}
                       />
                       {fieldErrors.lastName && (
                         <p className="text-red-500 text-xs mt-1">{fieldErrors.lastName}</p>
@@ -527,6 +551,7 @@ const AuthPage = () => {
                       className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
                         fieldErrors.email ? 'border-red-500 border-2' : 'focus:ring-blue-300'
                       }`}
+                      disabled={isLoading}
                     />
                     {fieldErrors.email && (
                       <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
@@ -542,11 +567,13 @@ const AuthPage = () => {
                         className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
                           fieldErrors.password ? 'border-red-500 border-2' : 'focus:ring-blue-300'
                         }`}
+                        disabled={isLoading}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute inset-y-0 right-0 pr-3 flex items-center z-10"
+                        disabled={isLoading}
                       >
                         {showPassword ? (
                           <EyeSlashIcon className="h-5 w-5 text-gray-500" />
@@ -590,11 +617,13 @@ const AuthPage = () => {
                         className={`w-full p-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 ${
                           fieldErrors.confirmPassword ? 'border-red-500 border-2' : 'focus:ring-blue-300'
                         }`}
+                        disabled={isLoading}
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute inset-y-0 right-0 pr-3 flex items-center z-10"
+                        disabled={isLoading}
                       >
                         {showConfirmPassword ? (
                           <EyeSlashIcon className="h-5 w-5 text-gray-500" />
@@ -630,9 +659,10 @@ const AuthPage = () => {
                   </p>
                   <button
                     type="submit"
-                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors"
+                    className="w-full p-3 bg-blue-500 text-white rounded-lg text-base hover:bg-blue-600 transition-colors flex items-center justify-center"
+                    disabled={isLoading}
                   >
-                    Sign Up
+                    {isLoading ? <Loader /> : 'Sign Up'}
                   </button>
                   <p className="text-center text-sm mt-3">
                     Already have an account?{' '}
