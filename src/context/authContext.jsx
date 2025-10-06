@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
                 '/manage-users/learners/section-details'
               ];
             } else if (lowers === 'teacher') {
-              return ['/teacher-dashboard', '/class-masterlist', '/teacher-materials', '/intervention-schedule'];
+              return ['/teacher-dashboard', '/class-masterlist', '/class-masterlist/edit-learner', '/teacher-materials', '/intervention-schedule'];
             } else if (lowers === 'learner') {
               return ['/learner-dashboard'];
             }

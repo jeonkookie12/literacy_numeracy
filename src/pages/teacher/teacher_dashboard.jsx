@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 import Banner from "../../assets/learner/dashboard_banner.svg";
 import Export from "../../assets/teacher/export.svg";
@@ -8,11 +9,11 @@ import NextPageIcon from "../../assets/teacher/next-page.svg";
 import LastPageIcon from "../../assets/teacher/last-page.svg";
 import SearchIcon from "../../assets/global/navbar/search.svg";
 import EditIcon from "../../assets/teacher/edit.svg";
+import EnrollIcon from "../../assets/teacher/enroll.svg";
 
 function TeacherDashboard() {
   const { user } = useAuth();
-
-  console.log("TeacherDashboard - Rendering, user:", user);
+  const navigate = useNavigate();
 
   if (!user || user.userType.toLowerCase() !== "teacher") {
     console.log("TeacherDashboard - No user or not a teacher, redirecting...");
@@ -23,6 +24,11 @@ function TeacherDashboard() {
   const handleExportClick = () => {
     console.log("Export clicked");
     // Add export logic here
+  };
+
+  const handleEnrollClick = () => {
+    console.log("Enroll clicked");
+    // Add enroll logic here
   };
 
   const handleFirstPageClick = () => {
@@ -48,6 +54,20 @@ function TeacherDashboard() {
   const handleRowClick = (rowNumber) => {
     console.log(`Row ${rowNumber} clicked`);
     // Add row click logic here
+  };
+
+  const handleEditClick = (rowNumber) => {
+    const learnerData = {
+      id: rowNumber,
+      name: "Reyes, Jose Dela Cruz",
+      lrn: "1251395765123",
+      gradeLevelSection: "IV - Santan",
+      philIRIScore: "",
+      crlaScore: "",
+      rmaScore: "",
+      interventionRemarks: {},
+    };
+    navigate("/class-masterlist/edit-learner", { state: { learner: learnerData } });
   };
 
   return (
@@ -79,6 +99,12 @@ function TeacherDashboard() {
           <div className="flex gap-3">
             <button
               className="border border-[#82B9F9] bg-transparent p-1.5 rounded-xl flex items-center hover:bg-[#82B9F9] hover:text-white hover:cursor-pointer transition-colors"
+              onClick={handleEnrollClick}
+            >
+              <img src={EnrollIcon} alt="Enroll" className="mr-1.5 w-4 h-4" /> Enroll
+            </button>
+            <button
+              className="border border-[#82B9F9] bg-transparent p-1.5 rounded-xl flex items-center hover:bg-[#82B9F9] hover:text-white hover:cursor-pointer transition-colors"
               onClick={handleExportClick}
             >
               <img src={Export} alt="Download" className="mr-1.5 w-4 h-4" /> Export
@@ -92,8 +118,8 @@ function TeacherDashboard() {
                 <th className="p-1.5 text-center text-xs sm:text-sm rounded-tl-xl">No.</th>
                 <th className="p-1.5 text-left text-xs sm:text-sm">Learner's Name</th>
                 <th className="p-1.5 text-center text-xs sm:text-sm">LRN</th>
-                <th className="p-1.5 text-left text-xs sm:text-sm">Literacy Remarks</th>
-                <th className="p-1.5 text-left text-xs sm:text-sm">Numeracy Remarks</th>
+                <th className="p-1.5 text-left text-xs sm:text-sm">Grade & Section</th>
+                <th className="p-1.5 text-left text-xs sm:text-sm">Remarks</th>
                 <th className="p-1.5 text-center text-xs sm:text-sm rounded-tr-xl">Action</th>
               </tr>
             </thead>
@@ -102,18 +128,14 @@ function TeacherDashboard() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">1</td>
                 <td className="p-1.5 text-left text-xs sm:text-sm">Reyes, Jose Dela Cruz</td>
                 <td className="p-1.5 text-center text-xs sm:text-sm">1251395765123</td>
-                <td className="p-1.5 text-left text-xs sm:text-sm">Can Sound B</td>
-                <td className="p-1.5 text-left text-xs sm:text-sm">Can Add Two Digits</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">IV - Santan</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">emerging reader</td>
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleRowClick(1)}
+                    onClick={() => handleEditClick(1)}
                   >
-                    <img
-                      src={EditIcon}
-                      alt="Edit"
-                      className="w-4 h-4 text-white"
-                    />
+                    <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
                 </td>
               </tr>
@@ -121,18 +143,14 @@ function TeacherDashboard() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">2</td>
                 <td className="p-1.5 text-left text-xs sm:text-sm">Reyes, Jose Dela Cruz</td>
                 <td className="p-1.5 text-center text-xs sm:text-sm">1251395765123</td>
-                <td className="p-1.5 text-left text-xs sm:text-sm">Can Sound B</td>
-                <td className="p-1.5 text-left text-xs sm:text-sm">Can Add Two Digits</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">IV - Santan</td>
+                <td className="p-1.5 text-left text-xs sm:text-sm">emerging reader</td>
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleRowClick(2)}
+                    onClick={() => handleEditClick(2)}
                   >
-                    <img
-                      src={EditIcon}
-                      alt="Edit"
-                      className="w-4 h-4 text-white"
-                    />
+                    <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
                 </td>
               </tr>
@@ -237,13 +255,9 @@ function TeacherDashboard() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleRowClick(1)}
+                    onClick={() => handleEditClick(1)}
                   >
-                    <img
-                      src={EditIcon}
-                      alt="Edit"
-                      className="w-4 h-4 text-white"
-                    />
+                    <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
                 </td>
               </tr>
@@ -256,13 +270,9 @@ function TeacherDashboard() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleRowClick(2)}
+                    onClick={() => handleEditClick(2)}
                   >
-                    <img
-                      src={EditIcon}
-                      alt="Edit"
-                      className="w-4 h-4 text-white"
-                    />
+                    <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
                 </td>
               </tr>

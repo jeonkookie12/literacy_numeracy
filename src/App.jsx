@@ -10,6 +10,7 @@ import LearnerDashboard from './pages/learner/learner_dashboard';
 //Teacher
 import TeacherDashboard from './pages/teacher/teacher_dashboard';
 import ClassMasterlist from './pages/teacher/class_masterlist';
+import EditLearnerPage from './pages/teacher/edit_learner';
 import TeacherLearningMaterials from './pages/teacher/teachers_resources';
 import InterventionSchedule from './pages/teacher/intervention_schedule';
 //Admin
@@ -20,6 +21,7 @@ import ManageUsers from './pages/admin/user_management';
 import Learners from './pages/admin/users/learners';
 import Teachers from './pages/admin/users/teachers';
 import SectionDetails from './pages/admin/users/section_details';
+
 
 function ScrollToTop() {
   const location = useLocation();
@@ -70,6 +72,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['teacher']}>
                 <ClassMasterlist />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/class-masterlist/edit-learner"
+            element={
+              <PrivateRoute allowedRoles={['teacher']}>
+                <EditLearnerPage />
               </PrivateRoute>
             }
           />
