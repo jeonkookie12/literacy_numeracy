@@ -54,12 +54,6 @@ const EditLearnerPage = () => {
     setFormData({ ...formData, interventionRemarks: updatedRemarks });
   };
 
-  const handleTestingTimeScoreChange = (e) => {
-    const updatedRemarks = { ...formData.interventionRemarks };
-    updatedRemarks["score_testing_time"] = e.target.checked ? "1" : "0";
-    setFormData({ ...formData, interventionRemarks: updatedRemarks });
-  };
-
   const handleSave = () => {
     console.log("Saved:", formData);
     navigate("/class-masterlist");
@@ -174,25 +168,25 @@ const EditLearnerPage = () => {
             <section>
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Learner's Intervention Remarks</h2>
               <div className="overflow-x-auto border border-blue-300 rounded-xl">
-                <table className="w-full rounded-xl">
+                <table className="w-full rounded-xl text-base">
                   <thead className="bg-[#82B9F9]">
                     <tr>
-                      <th className="p-1.5 text-left text-xs sm:text-sm rounded-tl-xl">Task / Item</th>
-                      <th className="p-1.5 text-left text-xs sm:text-sm w-24">Score</th>
-                      <th className="p-1.5 text-left text-xs sm:text-sm rounded-tr-xl">Remarks</th>
+                      <th className="p-2 text-left font-medium w-1/6 rounded-tl-xl">Task / Item</th>
+                      <th className="p-2 text-left font-medium w-1/6">Score</th>
+                      <th className="p-2 text-left font-medium w-2/3 rounded-tr-xl">Remarks</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* Task 1 (Letters) */}
                     <tr className="hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm font-semibold">Task 1 (Letters)</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
+                      <td className="p-2 text-left font-semibold">Task 1 (Letters)</td>
+                      <td className="p-2 text-left"></td>
+                      <td className="p-2 text-left"></td>
                     </tr>
                     {["A", "m", "E", "L"].map((item, index) => (
                       <tr key={index} className="border-t hover:bg-gray-100">
-                        <td className="p-1.5 text-left text-xs sm:text-sm">{item}</td>
-                        <td className="p-1.5 text-left text-xs sm:text-sm">
+                        <td className="p-2 text-left">{item}</td>
+                        <td className="p-2 text-left">
                           <input
                             type="checkbox"
                             checked={formData.interventionRemarks[`score_Task 1_${index}`] === "1"}
@@ -201,7 +195,7 @@ const EditLearnerPage = () => {
                           />
                         </td>
                         <td
-                          className="p-1.5 text-left text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="p-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={handleRemarksChange("Task 1", index)}
@@ -211,21 +205,21 @@ const EditLearnerPage = () => {
                       </tr>
                     ))}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm">Total</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
+                      <td className="p-2 text-left font-semibold">Total</td>
+                      <td className="p-2 text-left"></td>
+                      <td className="p-2 text-left"></td>
                     </tr>
 
                     {/* Task 2 (Syllables) */}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm font-semibold">Task 2 (Syllables)</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
+                      <td className="p-2 text-left font-semibold">Task 2 (Syllables)</td>
+                      <td className="p-2 text-left"></td>
+                      <td className="p-2 text-left"></td>
                     </tr>
                     {["sa", "ti", "ma", "et"].map((item, index) => (
                       <tr key={index} className="border-t hover:bg-gray-100">
-                        <td className="p-1.5 text-left text-xs sm:text-sm">{item}</td>
-                        <td className="p-1.5 text-left text-xs sm:text-sm">
+                        <td className="p-2 text-left">{item}</td>
+                        <td className="p-2 text-left">
                           <input
                             type="checkbox"
                             checked={formData.interventionRemarks[`score_Task 2_${index}`] === "1"}
@@ -234,7 +228,7 @@ const EditLearnerPage = () => {
                           />
                         </td>
                         <td
-                          className="p-1.5 text-left text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="p-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={handleRemarksChange("Task 2", index)}
@@ -244,21 +238,21 @@ const EditLearnerPage = () => {
                       </tr>
                     ))}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm">Total</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
+                      <td className="p-2 text-left font-semibold">Total</td>
+                      <td className="p-2 text-left"></td>
+                      <td className="p-2 text-left"></td>
                     </tr>
 
                     {/* Task 3 (Words) */}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm font-semibold">Task 3 (Words)</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
+                      <td className="p-2 text-left font-semibold">Task 3 (Words)</td>
+                      <td className="p-2 text-left"></td>
+                      <td className="p-2 text-left"></td>
                     </tr>
                     {["mat", "sit", "met", "tam", "let", "lit"].map((item, index) => (
                       <tr key={index} className="border-t hover:bg-gray-100">
-                        <td className="p-1.5 text-left text-xs sm:text-sm">{item}</td>
-                        <td className="p-1.5 text-left text-xs sm:text-sm">
+                        <td className="p-2 text-left">{item}</td>
+                        <td className="p-2 text-left">
                           <input
                             type="checkbox"
                             checked={formData.interventionRemarks[`score_Task 3_${index}`] === "1"}
@@ -267,7 +261,7 @@ const EditLearnerPage = () => {
                           />
                         </td>
                         <td
-                          className="p-1.5 text-left text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="p-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={handleRemarksChange("Task 3", index)}
@@ -277,21 +271,21 @@ const EditLearnerPage = () => {
                       </tr>
                     ))}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm">Total</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
+                      <td className="p-2 text-left font-semibold">Total</td>
+                      <td className="p-2 text-left"></td>
+                      <td className="p-2 text-left"></td>
                     </tr>
 
                     {/* Task 4 (Phrases) */}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm font-semibold">Task 4 (Phrases)</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
+                      <td className="p-2 text-left font-semibold">Task 4 (Phrases)</td>
+                      <td className="p-2 text-left"></td>
+                      <td className="p-2 text-left"></td>
                     </tr>
                     {["P1", "P2", "P3"].map((item, index) => (
                       <tr key={index} className="border-t hover:bg-gray-100">
-                        <td className="p-1.5 text-left text-xs sm:text-sm">{item}</td>
-                        <td className="p-1.5 text-left text-xs sm:text-sm">
+                        <td className="p-2 text-left">{item}</td>
+                        <td className="p-2 text-left">
                           <input
                             type="checkbox"
                             checked={formData.interventionRemarks[`score_Task 4_${index}`] === "1"}
@@ -300,7 +294,7 @@ const EditLearnerPage = () => {
                           />
                         </td>
                         <td
-                          className="p-1.5 text-left text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="p-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={handleRemarksChange("Task 4", index)}
@@ -310,17 +304,17 @@ const EditLearnerPage = () => {
                       </tr>
                     ))}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm">Total</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm"></td>
+                      <td className="p-2 text-left font-semibold">Total</td>
+                      <td className="p-2 text-left"></td>
+                      <td className="p-2 text-left"></td>
                     </tr>
 
                     {/* Overall Score */}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm font-semibold">Overall Score</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm">Total Score</td>
+                      <td className="p-2 text-left font-semibold text-base">Overall Score</td>
+                      <td className="p-2 text-left text-base">Total Score</td>
                       <td
-                        className="p-1.5 text-left text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="p-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={handleOverallScoreRemarksChange}
@@ -329,19 +323,12 @@ const EditLearnerPage = () => {
                       </td>
                     </tr>
 
-                    {/* Testing Time */}
+                    {/* Total Time */}
                     <tr className="border-t hover:bg-gray-100">
-                      <td className="p-1.5 text-left text-xs sm:text-sm font-semibold">Testing Time</td>
-                      <td className="p-1.5 text-left text-xs sm:text-sm">
-                        <input
-                          type="checkbox"
-                          checked={formData.interventionRemarks["score_testing_time"] === "1"}
-                          onChange={handleTestingTimeScoreChange}
-                          className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                        />
-                      </td>
+                      <td className="p-2 text-left font-semibold">Total Time</td>
+                      <td className="p-2 text-left"></td>
                       <td
-                        className="p-1.5 text-left text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="p-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={handleTestingTimeRemarksChange}
