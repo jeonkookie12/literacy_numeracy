@@ -23,11 +23,6 @@ function ClassMasterlist() {
     // Add enroll logic here
   };
 
-  const handleAddNewLearnerClick = () => {
-    console.log("Add New Learner clicked");
-    // Add logic for adding new learner here
-  };
-
   const handleFirstPageClick = () => {
     console.log("First page clicked");
     // Add navigation logic here
@@ -50,10 +45,6 @@ function ClassMasterlist() {
 
   const handleRowClick = (rowNumber) => {
     console.log(`Row ${rowNumber} clicked`);
-    // Add row click logic here
-  };
-
-  const handleEditClick = (rowNumber) => {
     const learnerData = {
       id: rowNumber,
       name: "Reyes, Jose Dela Cruz",
@@ -122,7 +113,10 @@ function ClassMasterlist() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleEditClick(1)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click from firing
+                      handleRowClick(1);
+                    }}
                   >
                     <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
@@ -137,7 +131,10 @@ function ClassMasterlist() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleEditClick(2)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click from firing
+                      handleRowClick(1);
+                    }}
                   >
                     <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>

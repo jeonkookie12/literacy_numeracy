@@ -8,8 +8,8 @@ import PreviousPageIcon from "../../assets/teacher/previous-page.svg";
 import NextPageIcon from "../../assets/teacher/next-page.svg";
 import LastPageIcon from "../../assets/teacher/last-page.svg";
 import SearchIcon from "../../assets/global/navbar/search.svg";
-import EditIcon from "../../assets/teacher/edit.svg";
 import EnrollIcon from "../../assets/teacher/enroll.svg";
+import EditIcon from "../../assets/teacher/edit.svg";
 
 function TeacherDashboard() {
   const { user } = useAuth();
@@ -53,10 +53,6 @@ function TeacherDashboard() {
 
   const handleRowClick = (rowNumber) => {
     console.log(`Row ${rowNumber} clicked`);
-    // Add row click logic here
-  };
-
-  const handleEditClick = (rowNumber) => {
     const learnerData = {
       id: rowNumber,
       name: "Reyes, Jose Dela Cruz",
@@ -133,7 +129,10 @@ function TeacherDashboard() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleEditClick(1)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click from firing
+                      handleRowClick(1);
+                    }}
                   >
                     <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
@@ -148,7 +147,10 @@ function TeacherDashboard() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleEditClick(2)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click from firing
+                      handleRowClick(2);
+                    }}
                   >
                     <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
@@ -255,7 +257,10 @@ function TeacherDashboard() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleEditClick(1)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click from firing
+                      handleRowClick(1);
+                    }}
                   >
                     <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
@@ -270,7 +275,10 @@ function TeacherDashboard() {
                 <td className="p-1.5 text-center text-xs sm:text-sm">
                   <button
                     className="bg-[#82B9F9] rounded-lg p-1 shadow-sm hover:shadow-md hover:bg-blue-600 focus:outline-none transition-colors"
-                    onClick={() => handleEditClick(2)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click from firing
+                      handleRowClick(2);
+                    }}
                   >
                     <img src={EditIcon} alt="Edit" className="w-4 h-4 text-white" />
                   </button>
