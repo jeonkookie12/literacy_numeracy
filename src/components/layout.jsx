@@ -14,7 +14,6 @@ import ProfileOptionIcon from '../assets/global/navbar/profile.svg';
 import LogoutIcon from '../assets/global/navbar/logout.svg';
 import BackIcon from '../assets/global/navbar/back.svg';
 
-// Custom CSS for tooltip fade-in animation
 const styles = `
   @keyframes fadeIn {
     from {
@@ -51,8 +50,8 @@ export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const userFirstName = user?.first_name || "User"; // Fallback if first_name is null
-  const profileButtonWidth = Math.max(80, Math.min(300, userFirstName.length * 10 + 60)); // Dynamic width: 10px per char + 60px for icon/padding
+  const userFirstName = user?.first_name || "User"; 
+  const profileButtonWidth = Math.max(80, Math.min(300, userFirstName.length * 10 + 60)); 
 
   // Update time every second
   useEffect(() => {

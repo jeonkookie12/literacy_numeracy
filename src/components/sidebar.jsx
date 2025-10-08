@@ -19,7 +19,6 @@ function Sidebar({ open, setOpen, setTitle }) {
   const userType = user?.userType?.toLowerCase() || "admin";
   const [isManageUsersOpen, setIsManageUsersOpen] = useState(true);
 
-  // Don't render Sidebar on login page or if no user
   if (location.pathname === "/" || !user) {
     console.log("Sidebar - Skipped rendering: on login page or no user");
     return null;
@@ -41,8 +40,8 @@ function Sidebar({ open, setOpen, setTitle }) {
     switch (userType) {
       case "learner":
         return [
-          { label: "Home", path: "/learner-dashboard", icon: DashboardIcon },
-          { label: "Learner's Status", path: "/learner-status", icon: UsersIcon },
+          { label: "Dashboard", path: "/learner-dashboard", icon: DashboardIcon },
+          { label: "Learner's Status", path: "/learner-status", icon: UsersIcon }, 
           { label: "Learning Materials", path: "/learner-materials", icon: ResourcesIcon, separator: true },
           { label: "Privacy Policy", path: "/privacy-policy", icon: PrivacyPolicyIcon },
         ];

@@ -588,7 +588,7 @@ const AuthPage = () => {
                     {password && (
                       <div className="text-sm mt-2 ml-1 space-y-1">
                         {[
-                          { label: 'Must be at least 8 characters', valid: passwordValidations.length },
+                          { label: 'Must be at least 8 characters ', valid: passwordValidations.length },
                           { label: 'Must have at least one lowercase letter', valid: passwordValidations.lowercase },
                           { label: 'Must have at least one uppercase letter', valid: passwordValidations.uppercase },
                           { label: 'Must have at least one special character', valid: passwordValidations.specialChar }
