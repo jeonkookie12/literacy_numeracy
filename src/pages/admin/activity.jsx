@@ -17,9 +17,11 @@ export default function ActivityResources() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
-  const [tagOptions, setTagOptions] = useState(["Science", "Math", "English", "History"]); // example tags
-
-  // Activity creation state (customizable per activity type)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [tagOptions, setTagOptions] = useState(["Science", "Math", "English", "History"]);
+  const filteredTags = tagOptions.filter(tag =>
+    tag.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   const [activityContent, setActivityContent] = useState({});
 
   const handleUploadClick = () => {
@@ -63,28 +65,23 @@ export default function ActivityResources() {
   };
 
   const toggleTag = (tag) => {
-    if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter(t => t !== tag));
-    } else {
-      setSelectedTags([...selectedTags, tag]);
-    }
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
   };
 
   const toggleSelectAllTags = () => {
-    if (selectedTags.length === tagOptions.length) {
+    if (selectedTags.length === filteredTags.length) {
       setSelectedTags([]);
     } else {
-      setSelectedTags([...tagOptions]);
+      setSelectedTags(filteredTags);
     }
   };
 
   const handleTagSearch = (e) => {
-    const value = e.target.value.toLowerCase();
-    setTagOptions(
-      ["Science", "Math", "English", "History"].filter(tag =>
-        tag.toLowerCase().includes(value)
-      )
-    );
+    setSearchTerm(e.target.value);
   };
 
   const toggleActivity = (activity) => {
@@ -229,78 +226,95 @@ export default function ActivityResources() {
                         </div>
                       ))}
                     </div>
-                    <div className="w-full">
-                      {/* Tags */}
-                      <div>
-                        <label className="block text-gray-800 text-base mb-1">Tags</label>
-                        <div className="relative">
-                          {/* Selected tags input */}
-                          <div
-                            onClick={() => setShowTagsDropdown(!showTagsDropdown)}
-                            className="flex flex-wrap items-center gap-2 bg-white border border-gray-300 rounded-xl px-3 py-2 cursor-pointer"
-                          >
-                            {selectedTags.length > 0 ? (
-                              selectedTags.map(tag => (
-                                <span
-                                  key={tag}
-                                  className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
-                                >
-                                  {tag}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-gray-400 text-sm">Select tags...</span>
-                            )}
-                            <img src={dropdownIcon} alt="Dropdown" className="w-3 h-3 ml-auto" />
-                          </div>
+                   <div className="w-full">
+  {/* Tags */}
+  <div>
+    <label className="block text-gray-800 text-base mb-1">Tags</label>
+    <div className="relative">
+      {/* Selected tags input */}
+      <div
+        onClick={() => setShowTagsDropdown(!showTagsDropdown)}
+        className="flex flex-wrap items-center gap-2 bg-white border border-gray-300 rounded-xl px-3 py-2 cursor-pointer"
+      >
+        {selectedTags.length > 0 ? (
+          selectedTags.map((tag) => (
+            <span
+              key={tag}
+              className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
+            >
+              {tag}
+            </span>
+          ))
+        ) : (
+          <span className="text-gray-400 text-sm">Select tags...</span>
+        )}
+        <img src={dropdownIcon} alt="Dropdown" className="w-3 h-3 ml-auto" />
+      </div>
 
-                          {/* Dropdown panel */}
-                          {showTagsDropdown && (
-                            <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-xl mt-1 shadow-md">
-                              {/* 🔍 Search bar */}
-                              <div className="p-2 border-b border-gray-100">
-                                <input
-                                  type="text"
-                                  placeholder="Search..."
-                                  onChange={handleTagSearch}
-                                  className="w-full px-3 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none"
-                                />
-                              </div>
+      {/* Dropdown panel */}
+      {showTagsDropdown && (
+        <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-xl mt-1 shadow-md">
+          {/* 🔍 Search bar */}
+          <div className="p-2 border-b border-gray-100">
+            <input
+              type="text"
+              placeholder="Search..."
+              onChange={handleTagSearch}
+              className="w-full px-3 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none"
+            />
+          </div>
 
-                              {/* Scrollable list */}
-                              <div className="max-h-40 overflow-y-auto">
-                                <div className="flex items-center px-4 py-2 border-b  border-gray-300">
-                                  <input
-                                    type="checkbox"
-                                    onChange={toggleSelectAllTags}
-                                    checked={selectedTags.length === tagOptions.length}
-                                    className="mr-2"
-                                  />
-                                  <span className="text-sm">Select all</span>
-                                </div>
+          {/* Scrollable list */}
+          <div className="max-h-40 overflow-y-auto">
+            {/* ✅ Select all */}
+            {filteredTags.length > 0 && (
+              <div
+                onClick={toggleSelectAllTags}
+                className="flex items-center px-4 py-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100"
+              >
+                <input
+                  type="checkbox"
+                  onChange={toggleSelectAllTags}
+                  checked={
+                    selectedTags.length > 0 &&
+                    selectedTags.length === filteredTags.length
+                  }
+                  className="mr-2 pointer-events-none"
+                />
+                <span className="text-sm">Select all</span>
+              </div>
+            )}
 
-                                {tagOptions.map(tag => (
-                                  <div
-                                    key={tag}
-                                    className="flex items-center px-4 py-2 hover:bg-gray-100"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedTags.includes(tag)}
-                                      onChange={() => toggleTag(tag)}
-                                      className="mr-2"
-                                    />
-                                    <span className="text-sm">{tag}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {errorMessage && <p className="text-red-500 text-base">{errorMessage}</p>}
-                  </div>
+            {/* ✅ Show filtered results or “no result” */}
+            {filteredTags.length > 0 ? (
+              filteredTags.map((tag) => (
+                <div
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedTags.includes(tag)}
+                    onChange={() => toggleTag(tag)}
+                    className="mr-2 pointer-events-none"
+                  />
+                  <span className="text-sm">{tag}</span>
+                </div>
+              ))
+            ) : (
+              <div className="px-4 py-3 text-gray-500 text-sm text-center">
+                No results found
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+{errorMessage && <p className="text-red-500 text-base">{errorMessage}</p>}
+</div>
                 )}
                 {currentPage === 2 && selectedActivities.includes("Pre-Test") && (
                   <div className="flex flex-col items-center gap-4">
@@ -357,7 +371,7 @@ export default function ActivityResources() {
             </div>
 
             {/* Footer - Fixed at the bottom */}
-            <div className="mt-auto p-4 bg-white border-t border-gray-300">
+            <div className="mt-auto p-2 bg-white border-t border-gray-300">
               <div className="flex justify-end gap-3">
                 {currentPage > 1 && (
                   <button
