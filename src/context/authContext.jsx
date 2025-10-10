@@ -70,10 +70,12 @@ export const AuthProvider = ({ children }) => {
               return [
                 '/admin-dashboard', '/manage-users', '/admin-resources', '/admin-analytics',
                 '/manage-users/learners', '/manage-users/teachers', '/manage-users/admins',
-                '/manage-users/learners/section-details'
+                '/manage-users/learners/section-details', '/activity-resources'
               ];
             } else if (lowers === 'teacher') {
-              return ['/teacher-dashboard', '/class-masterlist', '/class-masterlist/edit-learner', '/teacher-materials', '/intervention-schedule'];
+              return ['/teacher-dashboard', '/class-masterlist', '/class-masterlist/edit-learner', 
+                '/teacher-materials', '/intervention-schedule'
+              ];
             } else if (lowers === 'learner') {
               return ['/learner-dashboard'];
             }

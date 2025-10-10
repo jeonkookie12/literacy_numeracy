@@ -16,6 +16,7 @@ import InterventionSchedule from './pages/teacher/intervention_schedule';
 //Admin
 import AdminDashboard from './pages/admin/admin_dashboard';
 import LearningMaterials from './pages/admin/resources';
+import ActivityResources from './pages/admin/activity';
 //Manage Users in Admin
 import ManageUsers from './pages/admin/user_management';
 import Learners from './pages/admin/users/learners';
@@ -147,6 +148,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['admin']}>
                 <SectionDetails />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/activity-resources"
+            element={
+              <PrivateRoute allowedRoles={['admin']}>
+                <ActivityResources />
               </PrivateRoute>
             }
           />

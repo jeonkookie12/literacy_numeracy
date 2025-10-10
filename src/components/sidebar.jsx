@@ -68,6 +68,7 @@ function Sidebar({ open, setOpen, setTitle }) {
             ],
           },
           { label: "Learning Resources", path: "/admin-resources", icon: ResourcesIcon },
+          { label: "Activity", path: "/activity-resources", icon: ResourcesIcon },
           { label: "Analytics", path: "/admin-analytics", icon: AnalyticsIcon },
         ];
     }
