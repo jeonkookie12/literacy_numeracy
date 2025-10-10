@@ -40,13 +40,20 @@ export default function ActivityResources() {
   };
 
   const handleNext = () => {
+    const totalPages =
+      selectedActivities.length > 0 ? 2 + selectedActivities.length : 2;
+
     if (currentPage === 1 && selectedActivities.length === 0) {
       setErrorMessage("Please select at least one activity type.");
       return;
     }
-    setCurrentPage(currentPage + 1);
+
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
     setErrorMessage("");
   };
+
 
   const handlePrevious = () => {
     setCurrentPage(currentPage - 1);
@@ -161,34 +168,45 @@ export default function ActivityResources() {
             {/* Progress Bar */}
             <div className="w-full mb-6">
               <div className="flex justify-between relative">
-                {["Details", "Video elements", "Checks", "Visibility"].map((label, index) => (
-                  <div key={label} className="flex flex-col items-center flex-1 relative">
-                    {/* Label */}
-                    <span
-                      className={`text-sm mb-2 ${
-                        currentPage === index + 1 ? "text-blue-600 font-medium" : "text-gray-500"
-                      }`}
-                    >
-                      {label}
-                    </span>
+                {(() => {
+                  // Build steps dynamically
+                  const steps = ["Details"];
 
-                    {/* Dot */}
-                    <div
-                      className={`w-4 h-4 rounded-full z-10 ${
-                        currentPage === index + 1 ? "bg-blue-600 scale-110" : "bg-gray-400"
-                      } transition-all duration-300`}
-                    />
+                  if (selectedActivities.length === 0) {
+                    steps.push(".."); // placeholder
+                  } else {
+                    steps.push(...selectedActivities, "Preview");
+                  }
 
-                    {/* Line Connector */}
-                    {index < 3 && (
-                      <div
-                        className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
-                          currentPage > index + 1 ? "bg-blue-600" : "bg-gray-300"
+                  return steps.map((label, index) => (
+                    <div key={label} className="flex flex-col items-center flex-1 relative">
+                      {/* Label */}
+                      <span
+                        className={`text-sm mb-2 ${
+                          currentPage === index + 1 ? "text-blue-600 font-medium" : "text-gray-500"
                         }`}
+                      >
+                        {label}
+                      </span>
+
+                      {/* Dot */}
+                      <div
+                        className={`w-4 h-4 rounded-full z-10 ${
+                          currentPage === index + 1 ? "bg-blue-600 scale-110" : "bg-gray-400"
+                        } transition-all duration-300`}
                       />
-                    )}
-                  </div>
-                ))}
+
+                      {/* Line connector */}
+                      {index < steps.length - 1 && (
+                        <div
+                          className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
+                            currentPage > index + 1 ? "bg-blue-600" : "bg-gray-300"
+                          }`}
+                        />
+                      )}
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
 
@@ -227,94 +245,94 @@ export default function ActivityResources() {
                       ))}
                     </div>
                    <div className="w-full">
-  {/* Tags */}
-  <div>
-    <label className="block text-gray-800 text-base mb-1">Tags</label>
-    <div className="relative">
-      {/* Selected tags input */}
-      <div
-        onClick={() => setShowTagsDropdown(!showTagsDropdown)}
-        className="flex flex-wrap items-center gap-2 bg-white border border-gray-300 rounded-xl px-3 py-2 cursor-pointer"
-      >
-        {selectedTags.length > 0 ? (
-          selectedTags.map((tag) => (
-            <span
-              key={tag}
-              className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
-            >
-              {tag}
-            </span>
-          ))
-        ) : (
-          <span className="text-gray-400 text-sm">Select tags...</span>
-        )}
-        <img src={dropdownIcon} alt="Dropdown" className="w-3 h-3 ml-auto" />
-      </div>
+                    {/* Tags */}
+                    <div>
+                      <label className="block text-gray-800 text-base mb-1">Tags</label>
+                      <div className="relative">
+                        {/* Selected tags input */}
+                        <div
+                          onClick={() => setShowTagsDropdown(!showTagsDropdown)}
+                          className="flex flex-wrap items-center gap-2 bg-white border border-gray-300 rounded-xl px-3 py-2 cursor-pointer"
+                        >
+                          {selectedTags.length > 0 ? (
+                            selectedTags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-gray-400 text-sm">Select tags...</span>
+                          )}
+                          <img src={dropdownIcon} alt="Dropdown" className="w-3 h-3 ml-auto" />
+                        </div>
 
-      {/* Dropdown panel */}
-      {showTagsDropdown && (
-        <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-xl mt-1 shadow-md">
-          {/* 🔍 Search bar */}
-          <div className="p-2 border-b border-gray-100">
-            <input
-              type="text"
-              placeholder="Search..."
-              onChange={handleTagSearch}
-              className="w-full px-3 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none"
-            />
-          </div>
+                        {/* Dropdown panel */}
+                        {showTagsDropdown && (
+                          <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-xl mt-1 shadow-md">
+                            {/* 🔍 Search bar */}
+                            <div className="p-2 border-b border-gray-100">
+                              <input
+                                type="text"
+                                placeholder="Search..."
+                                onChange={handleTagSearch}
+                                className="w-full px-3 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none"
+                              />
+                            </div>
 
-          {/* Scrollable list */}
-          <div className="max-h-40 overflow-y-auto">
-            {/* ✅ Select all */}
-            {filteredTags.length > 0 && (
-              <div
-                onClick={toggleSelectAllTags}
-                className="flex items-center px-4 py-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100"
-              >
-                <input
-                  type="checkbox"
-                  onChange={toggleSelectAllTags}
-                  checked={
-                    selectedTags.length > 0 &&
-                    selectedTags.length === filteredTags.length
-                  }
-                  className="mr-2 pointer-events-none"
-                />
-                <span className="text-sm">Select all</span>
-              </div>
-            )}
+                            {/* Scrollable list */}
+                            <div className="max-h-40 overflow-y-auto">
+                              {/* ✅ Select all */}
+                              {filteredTags.length > 0 && (
+                                <div
+                                  onClick={toggleSelectAllTags}
+                                  className="flex items-center px-4 py-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    onChange={toggleSelectAllTags}
+                                    checked={
+                                      selectedTags.length > 0 &&
+                                      selectedTags.length === filteredTags.length
+                                    }
+                                    className="mr-2 pointer-events-none"
+                                  />
+                                  <span className="text-sm">Select all</span>
+                                </div>
+                              )}
 
-            {/* ✅ Show filtered results or “no result” */}
-            {filteredTags.length > 0 ? (
-              filteredTags.map((tag) => (
-                <div
-                  key={tag}
-                  onClick={() => toggleTag(tag)}
-                  className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedTags.includes(tag)}
-                    onChange={() => toggleTag(tag)}
-                    className="mr-2 pointer-events-none"
-                  />
-                  <span className="text-sm">{tag}</span>
-                </div>
-              ))
-            ) : (
-              <div className="px-4 py-3 text-gray-500 text-sm text-center">
-                No results found
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-</div>
-{errorMessage && <p className="text-red-500 text-base">{errorMessage}</p>}
-</div>
+                              {/* ✅ Show filtered results or “no result” */}
+                              {filteredTags.length > 0 ? (
+                                filteredTags.map((tag) => (
+                                  <div
+                                    key={tag}
+                                    onClick={() => toggleTag(tag)}
+                                    className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedTags.includes(tag)}
+                                      onChange={() => toggleTag(tag)}
+                                      className="mr-2 pointer-events-none"
+                                    />
+                                    <span className="text-sm">{tag}</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="px-4 py-3 text-gray-500 text-sm text-center">
+                                  No results found
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {errorMessage && <p className="text-red-500 text-base">{errorMessage}</p>}
+                  </div>
                 )}
                 {currentPage === 2 && selectedActivities.includes("Pre-Test") && (
                   <div className="flex flex-col items-center gap-4">
@@ -371,39 +389,56 @@ export default function ActivityResources() {
             </div>
 
             {/* Footer - Fixed at the bottom */}
-            <div className="mt-auto p-2 bg-white border-t border-gray-300">
+            <div className="mt-auto p-4 bg-white border-t border-gray-300">
               <div className="flex justify-end gap-3">
                 {currentPage > 1 && (
                   <button
                     onClick={handlePrevious}
                     className="px-4 py-1 bg-gray-200 rounded-xl text-base text-gray-800 hover:bg-gray-300"
                   >
-                    Previous
+                    Back
                   </button>
                 )}
-                {currentPage < 3 ? (
-                  <button
-                    onClick={handleNext}
-                    className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
-                  >
-                    Next
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleCreateActivity}
-                    className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
-                  >
-                    Create
-                  </button>
-                )}
-                <button
-                  onClick={handleCloseModal}
-                  className="px-4 py-1 bg-gray-200 rounded-xl text-base text-gray-800 hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
+
+                {(() => {
+                  // Dynamic total pages depending on selected activities
+                  const totalPages =
+                    selectedActivities.length > 0 ? 2 + selectedActivities.length : 2;
+                  const isLastPage = currentPage === totalPages;
+
+                  if (currentPage === 1) {
+                    return (
+                      <button
+                        onClick={handleNext}
+                        className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
+                      >
+                        Next
+                      </button>
+                    );
+                  } else if (isLastPage) {
+                    return (
+                      <button
+                        onClick={handleCreateActivity}
+                        className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
+                      >
+                        Publish
+                      </button>
+                    );
+                  } else {
+                    return (
+                      <button
+                        onClick={handleNext}
+                        className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
+                      >
+                        Next
+                      </button>
+                    );
+                  }
+                })()}
               </div>
             </div>
+
+
           </div>
         </div>
       )}
