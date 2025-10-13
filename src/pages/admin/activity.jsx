@@ -7,6 +7,8 @@ import uploadIcon from "../../assets/admin/upload.svg";
 import fileIcon from "../../assets/admin/file.svg";
 import dropdownIcon from "../../assets/admin/dropdown.svg";
 import searchIcon from "../../assets/admin/search.svg";
+import QuizBuilder from "../../components/admin/quiz_maker";
+
 
 export default function ActivityResources() {
   const [search, setSearch] = useState("");
@@ -266,6 +268,7 @@ export default function ActivityResources() {
             {/* BODY */}
             <div className="flex-1 overflow-y-auto mt-2 flex flex-col items-center justify-start pb-20">
               <div className="w-full">
+                {/* DETAILS PAGE */}
                 {currentPage === 1 && (
                   <div className="flex flex-col items-center gap-4">
                     {/* ACTIVITY TITLE */}
@@ -324,9 +327,7 @@ export default function ActivityResources() {
                         <div
                           onClick={() => setShowTagsDropdown(!showTagsDropdown)}
                           className={`flex flex-wrap items-center gap-2 bg-white border rounded-xl px-3 py-2 cursor-pointer ${
-                            fieldErrors.tags
-                              ? "border-red-500"
-                              : "border-gray-300"
+                            fieldErrors.tags ? "border-red-500" : "border-gray-300"
                           }`}
                         >
                           {selectedTags.length > 0 ? (
@@ -343,17 +344,8 @@ export default function ActivityResources() {
                               Select tags...
                             </span>
                           )}
-                          <img
-                            src={dropdownIcon}
-                            alt="Dropdown"
-                            className="w-3 h-3 ml-auto"
-                          />
+                          <img src={dropdownIcon} alt="Dropdown" className="w-3 h-3 ml-auto" />
                         </div>
-                        {fieldErrors.tags && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {fieldErrors.tags}
-                          </p>
-                        )}
 
                         {showTagsDropdown && (
                           <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-xl mt-1 shadow-md">
@@ -385,10 +377,34 @@ export default function ActivityResources() {
                           </div>
                         )}
                       </div>
+                      {fieldErrors.tags && (
+                        <p className="text-red-500 text-sm mt-1">{fieldErrors.tags}</p>
+                      )}
                     </div>
                   </div>
                 )}
+
+                {/* QUIZ BUILDER FOR EACH ACTIVITY TYPE */}
+                {selectedActivities.map((type, index) => {
+                  const pageNumber = 2 + index; // Page for each selected type
+                  if (currentPage !== pageNumber) return null;
+
+                  return (
+                    <QuizBuilder key={type} quizTypeLabel={type} />
+                  );
+                })}
+
+                {/* PREVIEW PAGE */}
+                {currentPage === 2 + selectedActivities.length && (
+                  <div className="flex flex-col items-center justify-center text-gray-700">
+                    <h2 className="text-lg font-semibold mb-2">Preview</h2>
+                    <p className="text-sm text-gray-500">
+                      Review your quiz before publishing.
+                    </p>
+                  </div>
+                )}
               </div>
+
             </div>
 
             {/* FOOTER */}
@@ -429,3 +445,4 @@ export default function ActivityResources() {
     </div>
   );
 }
+
