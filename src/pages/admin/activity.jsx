@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { CheckIcon } from "@heroicons/react/24/outline";
 import subjectIcon from "../../assets/admin/subject.svg";
 import dateIcon from "../../assets/admin/date.svg";
 import languageIcon from "../../assets/admin/language.svg";
 import uploadIcon from "../../assets/admin/upload.svg";
-import getIcon from "../../assets/admin/get.svg";
-import fileIcon from "../../assets/admin/file.svg"; 
-import dropdownIcon from "../../assets/admin/dropdown.svg"; 
-import searchIcon from "../../assets/admin/search.svg"; 
+import fileIcon from "../../assets/admin/file.svg";
+import dropdownIcon from "../../assets/admin/dropdown.svg";
+import searchIcon from "../../assets/admin/search.svg";
 
 export default function ActivityResources() {
   const [search, setSearch] = useState("");
@@ -18,11 +18,15 @@ export default function ActivityResources() {
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [tagOptions, setTagOptions] = useState(["Science", "Math", "English", "History"]);
-  const filteredTags = tagOptions.filter(tag =>
+  const [tagOptions] = useState(["Science", "Math", "English", "History"]);
+  const [activityContent, setActivityContent] = useState({});
+  const [completedSteps, setCompletedSteps] = useState([]); 
+  const [fieldErrors, setFieldErrors] = useState({}); 
+  const [checked, setChecked] = useState(false);
+
+  const filteredTags = tagOptions.filter((tag) =>
     tag.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const [activityContent, setActivityContent] = useState({});
 
   const handleUploadClick = () => {
     setIsModalOpen(true);
@@ -37,31 +41,49 @@ export default function ActivityResources() {
     setSelectedTags([]);
     setActivityContent({});
     setErrorMessage("");
+    setCompletedSteps([]);
+    setFieldErrors({});
   };
 
   const handleNext = () => {
     const totalPages =
       selectedActivities.length > 0 ? 2 + selectedActivities.length : 2;
 
-    if (currentPage === 1 && selectedActivities.length === 0) {
-      setErrorMessage("Please select at least one activity type.");
-      return;
+    // ✅ Validation for page 1
+    if (currentPage === 1) {
+      const newErrors = {};
+      if (!activityTitle.trim()) newErrors.title = "Activity Title is required.";
+      if (selectedTags.length === 0) newErrors.tags = "Please select at least one tag.";
+      if (selectedActivities.length === 0)
+        newErrors.activities = "Please select at least one activity type.";
+
+      setFieldErrors(newErrors);
+
+      if (Object.keys(newErrors).length > 0) return;
     }
 
     if (currentPage < totalPages) {
+      setCompletedSteps((prev) =>
+        prev.includes(currentPage) ? prev : [...prev, currentPage]
+      );
       setCurrentPage(currentPage + 1);
     }
     setErrorMessage("");
   };
 
-
   const handlePrevious = () => {
-    setCurrentPage(currentPage - 1);
+    setCurrentPage((prev) => {
+      const updated = [...completedSteps];
+      // remove checkmark when going back
+      const idx = updated.indexOf(prev);
+      if (idx !== -1) updated.splice(idx, 1);
+      setCompletedSteps(updated);
+      return prev - 1;
+    });
     setErrorMessage("");
   };
 
   const handleCreateActivity = () => {
-    // Customizable logic for each activity type
     console.log({
       title: activityTitle,
       activities: selectedActivities,
@@ -72,10 +94,8 @@ export default function ActivityResources() {
   };
 
   const toggleTag = (tag) => {
-    setSelectedTags(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
 
@@ -87,19 +107,21 @@ export default function ActivityResources() {
     }
   };
 
-  const handleTagSearch = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
   const toggleActivity = (activity) => {
-    setSelectedActivities(prev =>
-      prev.includes(activity) ? prev.filter(a => a !== activity) : [...prev, activity]
+    setSelectedActivities((prev) =>
+      prev.includes(activity)
+        ? prev.filter((a) => a !== activity)
+        : [...prev, activity]
     );
   };
 
   return (
     <div className="min-h-screen p-10 text-black">
-      <h2 className="text-lg font-semibold text-gray-800 mb-6">Manage Activity Resources</h2>
+      {/* MAIN CONTENT */}
+      <h2 className="text-lg font-semibold text-gray-800 mb-6">
+        Manage Activity Resources
+      </h2>
+
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div className="flex flex-1 gap-2 flex-wrap">
           <div className="flex items-center bg-white rounded-xl px-4 py-2 border border-blue-300 w-full md:w-72">
@@ -137,10 +159,14 @@ export default function ActivityResources() {
         </div>
       </div>
 
+      {/* FILES */}
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center">
+            <div
+              key={i}
+              className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center"
+            >
               <img src={fileIcon} alt="File" className="w-22 h-22 mb-2" />
               <p className="text-black">Activity / IV · 4 hours ago</p>
             </div>
@@ -148,111 +174,160 @@ export default function ActivityResources() {
         </div>
       </div>
 
-      {/* Activity Modal */}
+      {/* MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/30 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl w-full max-w-2xl p-6 relative flex flex-col h-[95vh]">
-            {/* Header */}
+            {/* HEADER */}
             <div className="flex justify-between items-center mb-1">
               <h3 className="text-lg font-semibold text-gray-800">
-                {currentPage === 1 ? "Create Activity" : activityTitle || "Activity/Test"}
+                {currentPage === 1
+                  ? "Create Activity"
+                  : activityTitle || "Activity/Test"}
               </h3>
-              <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <hr className="border-gray-300 mb-4" />
 
-            {/* Progress Bar */}
+            {/* ✅ PROGRESS BAR with check icons */}
             <div className="w-full mb-6">
               <div className="flex justify-between relative">
                 {(() => {
-                  // Build steps dynamically
                   const steps = ["Details"];
-
                   if (selectedActivities.length === 0) {
-                    steps.push(".."); // placeholder
+                    steps.push("..");
                   } else {
                     steps.push(...selectedActivities, "Preview");
                   }
 
-                  return steps.map((label, index) => (
-                    <div key={label} className="flex flex-col items-center flex-1 relative">
-                      {/* Label */}
-                      <span
-                        className={`text-sm mb-2 ${
-                          currentPage === index + 1 ? "text-blue-600 font-medium" : "text-gray-500"
-                        }`}
-                      >
-                        {label}
-                      </span>
+                  return steps.map((label, index) => {
+                    const stepNumber = index + 1;
+                    const isActive = currentPage === stepNumber;
+                    const isCompleted = completedSteps.includes(stepNumber);
 
-                      {/* Dot */}
+                    return (
                       <div
-                        className={`w-4 h-4 rounded-full z-10 ${
-                          currentPage === index + 1 ? "bg-blue-600 scale-110" : "bg-gray-400"
-                        } transition-all duration-300`}
-                      />
-
-                      {/* Line connector */}
-                      {index < steps.length - 1 && (
-                        <div
-                          className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
-                            currentPage > index + 1 ? "bg-blue-600" : "bg-gray-300"
+                        key={label}
+                        className="flex flex-col items-center flex-1 relative"
+                      >
+                        <span
+                          className={`text-sm mb-2 ${
+                            isActive
+                              ? "text-blue-600 font-medium"
+                              : "text-gray-500"
                           }`}
-                        />
-                      )}
-                    </div>
-                  ));
+                        >
+                          {label}
+                        </span>
+                        <div
+                          className={`w-5 h-5 rounded-full z-10 flex items-center justify-center transition-all duration-300 ${
+                            isCompleted
+                              ? "bg-blue-500"
+                              : isActive
+                              ? "bg-blue-600 scale-110"
+                              : "bg-gray-400"
+                          }`}
+                        >
+                          {isCompleted && <CheckIcon className="w-4 h-4 text-white" />}
+                        </div>
+                        {index < steps.length - 1 && (
+                          <div
+                            className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
+                              currentPage > stepNumber
+                                ? "bg-blue-600"
+                                : "bg-gray-300"
+                            }`}
+                          />
+                        )}
+                      </div>
+                    );
+                  });
                 })()}
               </div>
             </div>
 
-            {/* Body - Scrollable with adjusted spacing */}
+            {/* BODY */}
             <div className="flex-1 overflow-y-auto mt-2 flex flex-col items-center justify-start pb-20">
               <div className="w-full">
                 {currentPage === 1 && (
                   <div className="flex flex-col items-center gap-4">
+                    {/* ACTIVITY TITLE */}
                     <div className="w-full">
-                      <label className="block text-red-500 text-base mb-1">Activity Title (required) <span className="text-gray-500">ⓘ</span></label>
+                      <label className="block text-gray-800 text-base mb-1">
+                        Activity Title <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
                         value={activityTitle}
                         onChange={(e) => setActivityTitle(e.target.value)}
                         placeholder="Add a title that describes your activity"
-                        className="w-full px-5 py-2 border border-gray-300 rounded-xl text-base text-gray-500 focus:outline-none focus:border-blue-300"
+                        className={`w-full px-5 py-2 border rounded-xl text-base text-gray-700 focus:outline-none ${
+                          fieldErrors.title
+                            ? "border-red-500"
+                            : "border-gray-300 focus:border-blue-300"
+                        }`}
                       />
+                      {fieldErrors.title && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {fieldErrors.title}
+                        </p>
+                      )}
                     </div>
+
+                    {/* SELECT ACTIVITY */}
                     <div className="w-full">
-                      <label className="block text-gray-800 text-base mb-1">Select Activity</label>
-                      {["Pre-Test", "Activity", "Post-Test"].map(type => (
+                      <label className="block text-gray-800 text-base mb-1">
+                        Select Activity <span className="text-red-500">*</span>
+                      </label>
+                      {["Pre-Test", "Activity", "Post-Test"].map((type) => (
                         <div key={type} className="flex items-center mb-2">
-                          <label className="relative inline-flex items-center cursor-pointer mr-2">
-                            <input
-                              type="checkbox"
-                              value={type}
-                              checked={selectedActivities.includes(type)}
-                              onChange={() => toggleActivity(type)}
-                              className="sr-only peer"
-                            />
-                            <div className="peer ring-0 bg-rose-400 rounded-full outline-none duration-300 after:duration-500 w-8 h-8 shadow-md peer-checked:bg-emerald-500 peer-focus:outline-none after:content-['✖️'] after:rounded-full after:absolute after:outline-none after:h-6 after:w-6 after:bg-gray-50 after:top-1 after:left-1 after:flex after:justify-center after:items-center peer-hover:after:scale-75 peer-checked:after:content-['✔️'] after:-rotate-180 peer-checked:after:rotate-0">
-                            </div>
-                          </label>
+                          <input
+                            type="checkbox"
+                            value={type}
+                            checked={selectedActivities.includes(type)}
+                            onChange={() => toggleActivity(type)}
+                            className="mr-2 accent-blue-500"
+                          />
                           {type}
                         </div>
                       ))}
+                      {fieldErrors.activities && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {fieldErrors.activities}
+                        </p>
+                      )}
                     </div>
-                   <div className="w-full">
-                    {/* Tags */}
-                    <div>
-                      <label className="block text-gray-800 text-base mb-1">Tags</label>
+
+                    {/* TAGS */}
+                    <div className="w-full">
+                      <label className="block text-gray-800 text-base mb-1">
+                        Tags <span className="text-red-500">*</span>
+                      </label>
                       <div className="relative">
-                        {/* Selected tags input */}
                         <div
                           onClick={() => setShowTagsDropdown(!showTagsDropdown)}
-                          className="flex flex-wrap items-center gap-2 bg-white border border-gray-300 rounded-xl px-3 py-2 cursor-pointer"
+                          className={`flex flex-wrap items-center gap-2 bg-white border rounded-xl px-3 py-2 cursor-pointer ${
+                            fieldErrors.tags
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
                         >
                           {selectedTags.length > 0 ? (
                             selectedTags.map((tag) => (
@@ -264,132 +339,60 @@ export default function ActivityResources() {
                               </span>
                             ))
                           ) : (
-                            <span className="text-gray-400 text-sm">Select tags...</span>
+                            <span className="text-gray-400 text-sm">
+                              Select tags...
+                            </span>
                           )}
-                          <img src={dropdownIcon} alt="Dropdown" className="w-3 h-3 ml-auto" />
+                          <img
+                            src={dropdownIcon}
+                            alt="Dropdown"
+                            className="w-3 h-3 ml-auto"
+                          />
                         </div>
+                        {fieldErrors.tags && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {fieldErrors.tags}
+                          </p>
+                        )}
 
-                        {/* Dropdown panel */}
                         {showTagsDropdown && (
                           <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-xl mt-1 shadow-md">
-                            {/* 🔍 Search bar */}
                             <div className="p-2 border-b border-gray-100">
                               <input
                                 type="text"
                                 placeholder="Search..."
-                                onChange={handleTagSearch}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full px-3 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none"
                               />
                             </div>
-
-                            {/* Scrollable list */}
                             <div className="max-h-40 overflow-y-auto">
-                              {/* ✅ Select all */}
-                              {filteredTags.length > 0 && (
+                              {filteredTags.map((tag) => (
                                 <div
-                                  onClick={toggleSelectAllTags}
-                                  className="flex items-center px-4 py-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100"
+                                  key={tag}
+                                  onClick={() => toggleTag(tag)}
+                                  className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                 >
                                   <input
                                     type="checkbox"
-                                    onChange={toggleSelectAllTags}
-                                    checked={
-                                      selectedTags.length > 0 &&
-                                      selectedTags.length === filteredTags.length
-                                    }
-                                    className="mr-2 pointer-events-none"
+                                    checked={selectedTags.includes(tag)}
+                                    readOnly
+                                    className="mr-2 accent-blue-500"
                                   />
-                                  <span className="text-sm">Select all</span>
+                                  <span className="text-sm">{tag}</span>
                                 </div>
-                              )}
-
-                              {/* ✅ Show filtered results or “no result” */}
-                              {filteredTags.length > 0 ? (
-                                filteredTags.map((tag) => (
-                                  <div
-                                    key={tag}
-                                    onClick={() => toggleTag(tag)}
-                                    className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedTags.includes(tag)}
-                                      onChange={() => toggleTag(tag)}
-                                      className="mr-2 pointer-events-none"
-                                    />
-                                    <span className="text-sm">{tag}</span>
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="px-4 py-3 text-gray-500 text-sm text-center">
-                                  No results found
-                                </div>
-                              )}
+                              ))}
                             </div>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
-                  {errorMessage && <p className="text-red-500 text-base">{errorMessage}</p>}
-                  </div>
-                )}
-                {currentPage === 2 && selectedActivities.includes("Pre-Test") && (
-                  <div className="flex flex-col items-center gap-4">
-                    <h4 className="text-xl font-medium">Create Pre-Test</h4>
-                    <textarea
-                      value={activityContent.preTest || ""}
-                      onChange={(e) => setActivityContent({ ...activityContent, preTest: e.target.value })}
-                      placeholder="Add questions or content for Pre-Test"
-                      className="w-full px-3 py-1 border border-gray-300 rounded-xl text-base text-gray-500 focus:outline-none focus:border-blue-300 resize-y"
-                      rows="6"
-                    />
-                  </div>
-                )}
-                {currentPage === 2 && selectedActivities.includes("Activity") && (
-                  <div className="flex flex-col items-center gap-4">
-                    <h4 className="text-xl font-medium">Create Activity</h4>
-                    <textarea
-                      value={activityContent.activity || ""}
-                      onChange={(e) => setActivityContent({ ...activityContent, activity: e.target.value })}
-                      placeholder="Add tasks or content for Activity"
-                      className="w-full px-3 py-1 border border-gray-300 rounded-xl text-base text-gray-500 focus:outline-none focus:border-blue-300 resize-y"
-                      rows="6"
-                    />
-                  </div>
-                )}
-                {currentPage === 2 && selectedActivities.includes("Post-Test") && (
-                  <div className="flex flex-col items-center gap-4">
-                    <h4 className="text-xl font-medium">Create Post-Test</h4>
-                    <textarea
-                      value={activityContent.postTest || ""}
-                      onChange={(e) => setActivityContent({ ...activityContent, postTest: e.target.value })}
-                      placeholder="Add questions or content for Post-Test"
-                      className="w-full px-3 py-1 border border-gray-300 rounded-xl text-base text-gray-500 focus:outline-none focus:border-blue-300 resize-y"
-                      rows="6"
-                    />
-                  </div>
-                )}
-                {currentPage === 3 && (
-                  <div className="flex flex-col items-center gap-4">
-                    <h4 className="text-xl font-medium">Preview Activities</h4>
-                    <div className="w-full">
-                      <p><strong>Title:</strong> {activityTitle}</p>
-                      {selectedActivities.map(act => (
-                        <div key={act} className="mt-2">
-                          <p><strong>{act}:</strong></p>
-                          <p>{activityContent[act.toLowerCase().replace("-", "")] || "No content added"}</p>
-                        </div>
-                      ))}
-                      <p><strong>Tags:</strong> {selectedTags.join(", ")}</p>
-                    </div>
-                  </div>
                 )}
               </div>
             </div>
 
-            {/* Footer - Fixed at the bottom */}
-            <div className="mt-auto p-4 bg-white border-t border-gray-300">
+            {/* FOOTER */}
+            <div className="mt-auto p-2 bg-white border-t border-gray-300">
               <div className="flex justify-end gap-3">
                 {currentPage > 1 && (
                   <button
@@ -400,45 +403,26 @@ export default function ActivityResources() {
                   </button>
                 )}
 
-                {(() => {
-                  // Dynamic total pages depending on selected activities
-                  const totalPages =
-                    selectedActivities.length > 0 ? 2 + selectedActivities.length : 2;
-                  const isLastPage = currentPage === totalPages;
-
-                  if (currentPage === 1) {
-                    return (
-                      <button
-                        onClick={handleNext}
-                        className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
-                      >
-                        Next
-                      </button>
-                    );
-                  } else if (isLastPage) {
-                    return (
-                      <button
-                        onClick={handleCreateActivity}
-                        className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
-                      >
-                        Publish
-                      </button>
-                    );
-                  } else {
-                    return (
-                      <button
-                        onClick={handleNext}
-                        className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
-                      >
-                        Next
-                      </button>
-                    );
+                <button
+                  onClick={
+                    currentPage ===
+                    (selectedActivities.length > 0
+                      ? 2 + selectedActivities.length
+                      : 2)
+                      ? handleCreateActivity
+                      : handleNext
                   }
-                })()}
+                  className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
+                >
+                  {currentPage ===
+                  (selectedActivities.length > 0
+                    ? 2 + selectedActivities.length
+                    : 2)
+                    ? "Publish"
+                    : "Next"}
+                </button>
               </div>
             </div>
-
-
           </div>
         </div>
       )}
