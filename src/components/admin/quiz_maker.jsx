@@ -14,6 +14,29 @@ export default function QuizBuilder({ quizTypeLabel }) {
   const textareaRefs = useRef({});
   const fileInputRef = useRef(null);
 
+  // Load from localStorage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('quizBuilderData');
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      setActivityName(parsedData.activityName || "");
+      setSections(parsedData.sections || []);
+      setShowSelector(parsedData.sections?.length === 0);
+    }
+  }, []);
+
+  // Save to localStorage on changes
+  useEffect(() => {
+    localStorage.setItem('quizBuilderData', JSON.stringify({ activityName, sections }));
+  }, [activityName, sections]);
+
+  // Function to clear localStorage (call on modal close or publish)
+  const clearLocalStorage = () => {
+    localStorage.removeItem('quizBuilderData');
+  };
+
+  // Note: Call clearLocalStorage() when modal closes or quiz is published
+
   // Auto-resize textarea
   const autoResize = (element) => {
     if (element) {
@@ -205,13 +228,6 @@ export default function QuizBuilder({ quizTypeLabel }) {
                 <>
                   <div className="absolute right-3 top-3 flex gap-2">
                     <button
-                      onClick={() => openImageModal(sIndex, qIndex)}
-                      className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                      title="Add Image"
-                    >
-                      <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
-                    </button>
-                    <button
                       onClick={() => handleCopyQuestion(sIndex, qIndex)}
                       className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
                       title="Duplicate Question"
@@ -244,18 +260,27 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   <label className="block text-sm text-gray-500 mb-1">
                     Question {qIndex + 1}
                   </label>
-                  <textarea
-                    ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
-                    value={question.text}
-                    onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
-                    placeholder="Question"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
-                    rows="1"
-                    onInput={(e) => autoResize(e.target)}
-                  />
+                  <div className="relative">
+                    <textarea
+                      ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
+                      value={question.text}
+                      onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
+                      placeholder="Question"
+                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                      rows="1"
+                      onInput={(e) => autoResize(e.target)}
+                    />
+                    <button
+                      onClick={() => openImageModal(sIndex, qIndex)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                      title="Add Image"
+                    >
+                      <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
+                    </button>
+                  </div>
 
                   {question.options.map((option, oIndex) => (
-                    <div key={oIndex} className="flex items-center gap-2 mb-2 relative">
+                    <div key={oIndex} className="group flex items-center gap-2 mb-2 relative">
                       <input type="radio" disabled className="accent-blue-500" />
                       <div className="flex-1 relative">
                         <textarea
@@ -263,15 +288,22 @@ export default function QuizBuilder({ quizTypeLabel }) {
                           value={option.text}
                           onChange={(e) => handleOptionChange(sIndex, qIndex, oIndex, e.target.value)}
                           placeholder={`Option ${oIndex + 1}`}
-                          className="w-full px-3 py-1 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 resize-none overflow-hidden"
+                          className="w-full px-3 py-1 pr-16 border border-gray-300 rounded-lg focus:border-blue-300 resize-none overflow-hidden"
                           rows="1"
                           onInput={(e) => autoResize(e.target)}
                         />
                         <button
                           onClick={() => handleClearOption(sIndex, qIndex, oIndex)}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
+                          className="absolute right-8 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
                         >
                           ✕
+                        </button>
+                        <button
+                          onClick={() => openImageModal(sIndex, qIndex)}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
+                          title="Add Image"
+                        >
+                          <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
                         </button>
                       </div>
                       {question.options.length > 1 && (
@@ -388,13 +420,6 @@ export default function QuizBuilder({ quizTypeLabel }) {
                 <>
                   <div className="absolute right-3 top-3 flex gap-2">
                     <button
-                      onClick={() => openImageModal(sIndex, qIndex)}
-                      className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                      title="Add Image"
-                    >
-                      <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
-                    </button>
-                    <button
                       onClick={() => handleCopyQuestion(sIndex, qIndex)}
                       className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
                       title="Duplicate Question"
@@ -427,34 +452,50 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   <label className="block text-sm text-gray-500 mb-1">
                     Question {qIndex + 1}
                   </label>
-                  <textarea
-                    ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
-                    value={question.text}
-                    onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
-                    placeholder="Question"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
-                    rows="1"
-                    onInput={(e) => autoResize(e.target)}
-                  />
-
-                  <label className="block text-sm text-gray-500 mb-1">
-                    Expected Answer (optional)
-                  </label>
                   <div className="relative">
                     <textarea
-                      ref={(el) => (textareaRefs.current[`answer-${sIndex}-${qIndex}`] = el)}
-                      value={question.expectedAnswer}
-                      onChange={(e) => handleExpectedAnswerChange(sIndex, qIndex, e.target.value)}
-                      placeholder="Expected Answer"
+                      ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
+                      value={question.text}
+                      onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
+                      placeholder="Question"
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
                       rows="1"
                       onInput={(e) => autoResize(e.target)}
                     />
                     <button
+                      onClick={() => openImageModal(sIndex, qIndex)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                      title="Add Image"
+                    >
+                      <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <label className="block text-sm text-gray-500 mb-1">
+                    Expected Answer (optional)
+                  </label>
+                  <div className="group relative">
+                    <textarea
+                      ref={(el) => (textareaRefs.current[`answer-${sIndex}-${qIndex}`] = el)}
+                      value={question.expectedAnswer}
+                      onChange={(e) => handleExpectedAnswerChange(sIndex, qIndex, e.target.value)}
+                      placeholder="Expected Answer"
+                      className="w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                      rows="1"
+                      onInput={(e) => autoResize(e.target)}
+                    />
+                    <button
                       onClick={() => handleClearExpectedAnswer(sIndex, qIndex)}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
+                      className="absolute right-8 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
                     >
                       ✕
+                    </button>
+                    <button
+                      onClick={() => openImageModal(sIndex, qIndex)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
+                      title="Add Image"
+                    >
+                      <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
                     </button>
                   </div>
 
@@ -543,13 +584,6 @@ export default function QuizBuilder({ quizTypeLabel }) {
                 <>
                   <div className="absolute right-3 top-3 flex gap-2">
                     <button
-                      onClick={() => openImageModal(sIndex, qIndex)}
-                      className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                      title="Add Image"
-                    >
-                      <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
-                    </button>
-                    <button
                       onClick={() => handleCopyQuestion(sIndex, qIndex)}
                       className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
                       title="Duplicate Question"
@@ -582,15 +616,24 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   <label className="block text-sm text-gray-500 mb-1">
                     Upload Prompt {qIndex + 1}
                   </label>
-                  <textarea
-                    ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
-                    value={question.text}
-                    onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
-                    placeholder="Enter upload instructions or question"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
-                    rows="1"
-                    onInput={(e) => autoResize(e.target)}
-                  />
+                  <div className="relative">
+                    <textarea
+                      ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
+                      value={question.text}
+                      onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
+                      placeholder="Enter upload instructions or question"
+                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                      rows="1"
+                      onInput={(e) => autoResize(e.target)}
+                    />
+                    <button
+                      onClick={() => openImageModal(sIndex, qIndex)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                      title="Add Image"
+                    >
+                      <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
+                    </button>
+                  </div>
 
                   <hr className="mt-4 border-gray-300" />
 
