@@ -11,8 +11,10 @@ export default function QuizBuilder({ quizTypeLabel }) {
   const [showSelector, setShowSelector] = useState(true);
   const [openQuestionSettings, setOpenQuestionSettings] = useState(new Set());
   const [showImageModal, setShowImageModal] = useState(null); // Tracks which question's modal is open (sIndex-qIndex)
+  const [isUploading, setIsUploading] = useState(false); // Tracks upload state for loader
   const textareaRefs = useRef({});
   const fileInputRef = useRef(null);
+  const selectorRef = useRef(null); // Ref for the question type selector
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -30,12 +32,17 @@ export default function QuizBuilder({ quizTypeLabel }) {
     localStorage.setItem('quizBuilderData', JSON.stringify({ activityName, sections }));
   }, [activityName, sections]);
 
+  // Scroll to selector when shown
+  useEffect(() => {
+    if (showSelector && selectorRef.current && sections.length > 0) {
+      selectorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [showSelector]);
+
   // Function to clear localStorage (call on modal close or publish)
   const clearLocalStorage = () => {
     localStorage.removeItem('quizBuilderData');
   };
-
-  // Note: Call clearLocalStorage() when modal closes or quiz is published
 
   // Auto-resize textarea
   const autoResize = (element) => {
@@ -65,17 +72,19 @@ export default function QuizBuilder({ quizTypeLabel }) {
 
   const openImageModal = (sIndex, qIndex) => {
     setShowImageModal(`${sIndex}-${qIndex}`);
+    setIsUploading(false); // Reset uploading state
   };
 
   const closeImageModal = () => {
     setShowImageModal(null);
+    setIsUploading(false);
   };
 
   const handleImageSelect = () => {
-    // Simulate image selection handling (no storage/display as per requirement)
+    setIsUploading(true); // Show loader
     setTimeout(() => {
-      closeImageModal();
-    }, 2000); // Close modal after 2 seconds
+      closeImageModal(); // Close modal after 2 seconds
+    }, 2000);
   };
 
   // Add New Section
@@ -272,7 +281,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
                     />
                     <button
                       onClick={() => openImageModal(sIndex, qIndex)}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
                       title="Add Image"
                     >
                       <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
@@ -293,17 +302,17 @@ export default function QuizBuilder({ quizTypeLabel }) {
                           onInput={(e) => autoResize(e.target)}
                         />
                         <button
-                          onClick={() => handleClearOption(sIndex, qIndex, oIndex)}
-                          className="absolute right-8 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
-                        >
-                          ✕
-                        </button>
-                        <button
                           onClick={() => openImageModal(sIndex, qIndex)}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
+                          className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
                           title="Add Image"
                         >
                           <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleClearOption(sIndex, qIndex, oIndex)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
+                        >
+                          ✕
                         </button>
                       </div>
                       {question.options.length > 1 && (
@@ -464,7 +473,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
                     />
                     <button
                       onClick={() => openImageModal(sIndex, qIndex)}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
                       title="Add Image"
                     >
                       <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
@@ -485,17 +494,17 @@ export default function QuizBuilder({ quizTypeLabel }) {
                       onInput={(e) => autoResize(e.target)}
                     />
                     <button
-                      onClick={() => handleClearExpectedAnswer(sIndex, qIndex)}
-                      className="absolute right-8 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                    <button
                       onClick={() => openImageModal(sIndex, qIndex)}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
+                      className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
                       title="Add Image"
                     >
                       <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleClearExpectedAnswer(sIndex, qIndex)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
+                    >
+                      ✕
                     </button>
                   </div>
 
@@ -532,7 +541,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
                       />
                       <button
                         onClick={() => handleClearExpectedAnswer(sIndex, qIndex)}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
                       >
                         ✕
                       </button>
@@ -628,7 +637,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
                     />
                     <button
                       onClick={() => openImageModal(sIndex, qIndex)}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
                       title="Add Image"
                     >
                       <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
@@ -692,6 +701,30 @@ export default function QuizBuilder({ quizTypeLabel }) {
 
   return (
     <div className="w-full flex flex-col items-center text-gray-800">
+      <style>
+        {`
+          .progress-line {
+            width: 100%;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+          }
+          .progress-line::before {
+            content: '';
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background: #3b82f6;
+            animation: moveProgress 1.5s linear infinite;
+          }
+          @keyframes moveProgress {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+          }
+        `}
+      </style>
       <h2 className="text-lg font-semibold mb-3">{quizTypeLabel}</h2>
 
       {/* ACTIVITY NAME */}
@@ -712,16 +745,32 @@ export default function QuizBuilder({ quizTypeLabel }) {
           />
           <button
             onClick={() => setActivityName("")}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
           >
             ✕
           </button>
         </div>
       </div>
 
+      {/* SECTIONS */}
+      {sections.map((section, sIndex) => (
+        <div key={sIndex} className="w-full mb-8">
+          <h3 className="text-md font-semibold mb-2">{section.type} Section</h3>
+          {renderSectionBuilder(section, sIndex)}
+        </div>
+      ))}
+
       {/* QUIZ TYPE SELECTION */}
+      {!showSelector && sections.length > 0 && (
+        <button
+          onClick={() => setShowSelector(true)}
+          className="px-4 py-2 mt-4 text-blue-500 hover:underline cursor-pointer"
+        >
+          + Add Another Question Type
+        </button>
+      )}
       {showSelector && (
-        <div className="w-full mb-6">
+        <div ref={selectorRef} className="w-full mb-6">
           <label className="block text-gray-700 text-base mb-1">
             {sections.length === 0 ? "Select" : "Add"} Question Type
           </label>
@@ -739,14 +788,6 @@ export default function QuizBuilder({ quizTypeLabel }) {
         </div>
       )}
 
-      {/* SECTIONS */}
-      {sections.map((section, sIndex) => (
-        <div key={sIndex} className="w-full mb-8">
-          <h3 className="text-md font-semibold mb-2">{section.type} Section</h3>
-          {renderSectionBuilder(section, sIndex)}
-        </div>
-      ))}
-
       {/* IMAGE MODAL */}
       {showImageModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -762,31 +803,28 @@ export default function QuizBuilder({ quizTypeLabel }) {
             </div>
             <hr className="mb-4 border-gray-300" />
             <div className="flex justify-center">
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/jpg"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleImageSelect}
-              />
-              <button
-                onClick={() => fileInputRef.current.click()}
-                className="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition cursor-pointer"
-              >
-                Browse
-              </button>
+              {isUploading ? (
+                <div className="progress-line"></div>
+              ) : (
+                <>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current.click()}
+                    className="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition cursor-pointer"
+                  >
+                    Browse
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
-      )}
-
-      {!showSelector && sections.length > 0 && (
-        <button
-          onClick={() => setShowSelector(true)}
-          className="px-4 py-2 mt-4 text-blue-500 hover:underline cursor-pointer"
-        >
-          + Add Another Question Type
-        </button>
       )}
     </div>
   );
