@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import copyIcon from "../../assets/admin/copy.svg";
 import deleteIcon from "../../assets/admin/delete.svg";
 import upIcon from "../../assets/admin/arrow-up.svg";
@@ -7,18 +7,48 @@ import downIcon from "../../assets/admin/arrow-down.svg";
 export default function QuizBuilder({ quizTypeLabel }) {
   const [activityName, setActivityName] = useState("");
   const [sections, setSections] = useState([]);
+  const [showSelector, setShowSelector] = useState(true);
+  const [openQuestionSettings, setOpenQuestionSettings] = useState(new Set());
+  const textareaRefs = useRef({});
+
+  // Auto-resize textarea
+  const autoResize = (element) => {
+    if (element) {
+      element.style.height = "auto";
+      element.style.height = `${element.scrollHeight}px`;
+    }
+  };
+
+  // Handle textarea resize on mount and update
+  useEffect(() => {
+    Object.values(textareaRefs.current).forEach(autoResize);
+  }, [sections]);
+
+  const toggleSettings = (sIndex, qIndex) => {
+    const key = `${sIndex}-${qIndex}`;
+    setOpenQuestionSettings((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
 
   // Add New Section
   const handleAddSection = (type) => {
-    let newQuestions = [];
+    let newQuestion = {};
     if (type === "Multiple Choice") {
-      newQuestions = [{ text: "", options: [{ text: "" }] }];
+      newQuestion = { text: "", options: [{ text: "" }], correctIndex: null, points: "" };
     } else if (type === "Answer") {
-      newQuestions = [{ text: "", expectedAnswer: "" }];
+      newQuestion = { text: "", expectedAnswer: "", points: "" };
     } else if (type === "File Upload") {
-      newQuestions = [{ text: "" }];
+      newQuestion = { text: "", points: "" };
     }
-    setSections([...sections, { type, questions: newQuestions }]);
+    setSections([...sections, { type, questions: [newQuestion] }]);
+    setShowSelector(false);
   };
 
   // Add Question to Section
@@ -27,11 +57,11 @@ export default function QuizBuilder({ quizTypeLabel }) {
     const section = newSections[sIndex];
     let newQuestion = {};
     if (section.type === "Multiple Choice") {
-      newQuestion = { text: "", options: [{ text: "" }] };
+      newQuestion = { text: "", options: [{ text: "" }], correctIndex: null, points: "" };
     } else if (section.type === "Answer") {
-      newQuestion = { text: "", expectedAnswer: "" };
+      newQuestion = { text: "", expectedAnswer: "", points: "" };
     } else if (section.type === "File Upload") {
-      newQuestion = { text: "" };
+      newQuestion = { text: "", points: "" };
     }
     section.questions.push(newQuestion);
     setSections(newSections);
@@ -52,16 +82,10 @@ export default function QuizBuilder({ quizTypeLabel }) {
     const section = newSections[sIndex];
     section.questions.splice(qIndex, 1);
     if (section.questions.length === 0) {
-      // Optionally remove section if no questions, but keep for now
-      let emptyQuestion = {};
-      if (section.type === "Multiple Choice") {
-        emptyQuestion = { text: "", options: [{ text: "" }] };
-      } else if (section.type === "Answer") {
-        emptyQuestion = { text: "", expectedAnswer: "" };
-      } else if (section.type === "File Upload") {
-        emptyQuestion = { text: "" };
+      newSections.splice(sIndex, 1);
+      if (newSections.length === 0) {
+        setShowSelector(true);
       }
-      section.questions = [emptyQuestion];
     }
     setSections(newSections);
   };
@@ -94,11 +118,29 @@ export default function QuizBuilder({ quizTypeLabel }) {
     setSections(newSections);
   };
 
+  // Clear Handlers
+  const handleClearOption = (sIndex, qIndex, oIndex) => {
+    const newSections = [...sections];
+    const section = newSections[sIndex];
+    if (section.type !== "Multiple Choice") return;
+    section.questions[qIndex].options[oIndex].text = "";
+    setSections(newSections);
+  };
+
+  const handleClearExpectedAnswer = (sIndex, qIndex) => {
+    const newSections = [...sections];
+    const section = newSections[sIndex];
+    if (section.type !== "Answer") return;
+    section.questions[qIndex].expectedAnswer = "";
+    setSections(newSections);
+  };
+
   // Change Handlers
   const handleQuestionChange = (sIndex, qIndex, value) => {
     const newSections = [...sections];
     newSections[sIndex].questions[qIndex].text = value;
     setSections(newSections);
+    autoResize(textareaRefs.current[`question-${sIndex}-${qIndex}`]);
   };
 
   const handleOptionChange = (sIndex, qIndex, oIndex, value) => {
@@ -107,6 +149,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
     if (section.type !== "Multiple Choice") return;
     section.questions[qIndex].options[oIndex].text = value;
     setSections(newSections);
+    autoResize(textareaRefs.current[`option-${sIndex}-${qIndex}-${oIndex}`]);
   };
 
   const handleExpectedAnswerChange = (sIndex, qIndex, value) => {
@@ -114,6 +157,19 @@ export default function QuizBuilder({ quizTypeLabel }) {
     const section = newSections[sIndex];
     if (section.type !== "Answer") return;
     section.questions[qIndex].expectedAnswer = value;
+    setSections(newSections);
+    autoResize(textareaRefs.current[`answer-${sIndex}-${qIndex}`]);
+  };
+
+  const handlePointsChange = (sIndex, qIndex, value) => {
+    const newSections = [...sections];
+    newSections[sIndex].questions[qIndex].points = value;
+    setSections(newSections);
+  };
+
+  const handleCorrectIndexChange = (sIndex, qIndex, oIndex) => {
+    const newSections = [...sections];
+    newSections[sIndex].questions[qIndex].correctIndex = oIndex;
     setSections(newSections);
   };
 
@@ -161,28 +217,40 @@ export default function QuizBuilder({ quizTypeLabel }) {
               <label className="block text-sm text-gray-500 mb-1">
                 Question {qIndex + 1}
               </label>
-              <input
-                type="text"
+              <textarea
+                ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
                 value={question.text}
                 onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
                 placeholder="Question"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                rows="1"
+                onInput={(e) => autoResize(e.target)}
               />
 
               {question.options.map((option, oIndex) => (
                 <div key={oIndex} className="flex items-center gap-2 mb-2 relative">
                   <input type="radio" disabled className="accent-blue-500" />
-                  <input
-                    type="text"
-                    value={option.text}
-                    onChange={(e) => handleOptionChange(sIndex, qIndex, oIndex, e.target.value)}
-                    placeholder={`Option ${oIndex + 1}`}
-                    className="flex-1 px-3 py-1 border border-gray-300 rounded-lg focus:border-blue-300"
-                  />
+                  <div className="flex-1 relative">
+                    <textarea
+                      ref={(el) => (textareaRefs.current[`option-${sIndex}-${qIndex}-${oIndex}`] = el)}
+                      value={option.text}
+                      onChange={(e) => handleOptionChange(sIndex, qIndex, oIndex, e.target.value)}
+                      placeholder={`Option ${oIndex + 1}`}
+                      className="w-full px-3 py-1 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 resize-none overflow-hidden"
+                      rows="1"
+                      onInput={(e) => autoResize(e.target)}
+                    />
+                    <button
+                      onClick={() => handleClearOption(sIndex, qIndex, oIndex)}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
                   {question.options.length > 1 && (
                     <button
                       onClick={() => handleRemoveOption(sIndex, qIndex, oIndex)}
-                      className="text-red-500 absolute right-2 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700"
                     >
                       ✕
                     </button>
@@ -198,6 +266,99 @@ export default function QuizBuilder({ quizTypeLabel }) {
               </button>
 
               <hr className="mt-4 border-gray-300" />
+
+              <button
+                onClick={() => toggleSettings(sIndex, qIndex)}
+                className="mt-2 text-blue-500 text-sm hover:underline"
+              >
+                Set Correct Answer and Points
+              </button>
+
+              {openQuestionSettings.has(`${sIndex}-${qIndex}`) && (
+                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h4 className="font-semibold mb-2">Correct Answer</h4>
+                  <p className="mb-4">
+                    <strong>Question:</strong>{" "}
+                    <span className="inline-block">{question.text || "No question text entered"}</span>
+                  </p>
+
+                  {section.type === "Multiple Choice" && (
+                    <div className="mb-4">
+                      {question.options.map((option, oIndex) => (
+                        <div key={oIndex} className="flex items-center mb-2">
+                          <input
+                            type="radio"
+                            id={`correct-${sIndex}-${qIndex}-${oIndex}`}
+                            name={`correct-${sIndex}-${qIndex}`}
+                            checked={question.correctIndex === oIndex}
+                            onChange={() => handleCorrectIndexChange(sIndex, qIndex, oIndex)}
+                            className="accent-blue-500 mr-2"
+                          />
+                          <label
+                            htmlFor={`correct-${sIndex}-${qIndex}-${oIndex}`}
+                            className="flex-1"
+                          >
+                            <textarea
+                              ref={(el) =>
+                                (textareaRefs.current[`option-correct-${sIndex}-${qIndex}-${oIndex}`] = el)
+                              }
+                              value={option.text || `Option ${oIndex + 1}`}
+                              readOnly
+                              className="w-full px-3 py-1 border border-gray-300 rounded-lg bg-gray-100 resize-none overflow-hidden"
+                              rows="1"
+                              onInput={(e) => autoResize(e.target)}
+                            />
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {section.type === "Answer" && (
+                    <div className="mb-4">
+                      <label className="block text-sm text-gray-500 mb-1">Correct Answer</label>
+                      <div className="relative">
+                        <textarea
+                          ref={(el) => (textareaRefs.current[`answer-${sIndex}-${qIndex}`] = el)}
+                          value={question.expectedAnswer}
+                          onChange={(e) => handleExpectedAnswerChange(sIndex, qIndex, e.target.value)}
+                          placeholder="Expected Answer"
+                          className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 resize-none overflow-hidden"
+                          rows="1"
+                          onInput={(e) => autoResize(e.target)}
+                        />
+                        <button
+                          onClick={() => handleClearExpectedAnswer(sIndex, qIndex)}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <label className="block text-sm text-gray-500 mb-1">Points</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={question.points}
+                      onChange={(e) => handlePointsChange(sIndex, qIndex, e.target.value)}
+                      placeholder="Points"
+                      className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300"
+                    />
+                  </div>
+
+                  <hr className="mt-4 border-gray-300" />
+
+                  <button
+                    onClick={() => toggleSettings(sIndex, qIndex)}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
@@ -251,26 +412,97 @@ export default function QuizBuilder({ quizTypeLabel }) {
               <label className="block text-sm text-gray-500 mb-1">
                 Question {qIndex + 1}
               </label>
-              <input
-                type="text"
+              <textarea
+                ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
                 value={question.text}
                 onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
                 placeholder="Question"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                rows="1"
+                onInput={(e) => autoResize(e.target)}
               />
 
               <label className="block text-sm text-gray-500 mb-1">
                 Expected Answer (optional)
               </label>
-              <input
-                type="text"
-                value={question.expectedAnswer}
-                onChange={(e) => handleExpectedAnswerChange(sIndex, qIndex, e.target.value)}
-                placeholder="Expected Answer"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3"
-              />
+              <div className="relative">
+                <textarea
+                  ref={(el) => (textareaRefs.current[`answer-${sIndex}-${qIndex}`] = el)}
+                  value={question.expectedAnswer}
+                  onChange={(e) => handleExpectedAnswerChange(sIndex, qIndex, e.target.value)}
+                  placeholder="Expected Answer"
+                  className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                  rows="1"
+                  onInput={(e) => autoResize(e.target)}
+                />
+                <button
+                  onClick={() => handleClearExpectedAnswer(sIndex, qIndex)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700"
+                >
+                  ✕
+                </button>
+              </div>
 
               <hr className="mt-4 border-gray-300" />
+
+              <button
+                onClick={() => toggleSettings(sIndex, qIndex)}
+                className="mt-2 text-blue-500 text-sm hover:underline"
+              >
+                Set Correct Answer and Points
+              </button>
+
+              {openQuestionSettings.has(`${sIndex}-${qIndex}`) && (
+                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h4 className="font-semibold mb-2">Correct Answer</h4>
+                  <p className="mb-4">
+                    <strong>Question:</strong>{" "}
+                    <span className="inline-block">{question.text || "No question text entered"}</span>
+                  </p>
+
+                  <div className="mb-4">
+                    <label className="block text-sm text-gray-500 mb-1">Correct Answer</label>
+                    <div className="relative">
+                      <textarea
+                        ref={(el) => (textareaRefs.current[`answer-correct-${sIndex}-${qIndex}`] = el)}
+                        value={question.expectedAnswer}
+                        onChange={(e) => handleExpectedAnswerChange(sIndex, qIndex, e.target.value)}
+                        placeholder="Expected Answer"
+                        className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 resize-none overflow-hidden"
+                        rows="1"
+                        onInput={(e) => autoResize(e.target)}
+                      />
+                      <button
+                        onClick={() => handleClearExpectedAnswer(sIndex, qIndex)}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm text-gray-500 mb-1">Points</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={question.points}
+                      onChange={(e) => handlePointsChange(sIndex, qIndex, e.target.value)}
+                      placeholder="Points"
+                      className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300"
+                    />
+                  </div>
+
+                  <hr className="mt-4 border-gray-300" />
+
+                  <button
+                    onClick={() => toggleSettings(sIndex, qIndex)}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
@@ -324,15 +556,55 @@ export default function QuizBuilder({ quizTypeLabel }) {
               <label className="block text-sm text-gray-500 mb-1">
                 Upload Prompt {qIndex + 1}
               </label>
-              <input
-                type="text"
+              <textarea
+                ref={(el) => (textareaRefs.current[`question-${sIndex}-${qIndex}`] = el)}
                 value={question.text}
                 onChange={(e) => handleQuestionChange(sIndex, qIndex, e.target.value)}
                 placeholder="Enter upload instructions or question"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                rows="1"
+                onInput={(e) => autoResize(e.target)}
               />
 
               <hr className="mt-4 border-gray-300" />
+
+              <button
+                onClick={() => toggleSettings(sIndex, qIndex)}
+                className="mt-2 text-blue-500 text-sm hover:underline"
+              >
+                Set Correct Answer and Points
+              </button>
+
+              {openQuestionSettings.has(`${sIndex}-${qIndex}`) && (
+                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h4 className="font-semibold mb-2">Correct Answer</h4>
+                  <p className="mb-4">
+                    <strong>Question:</strong>{" "}
+                    <span className="inline-block">{question.text || "No question text entered"}</span>
+                  </p>
+
+                  <div className="mb-4">
+                    <label className="block text-sm text-gray-500 mb-1">Points</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={question.points}
+                      onChange={(e) => handlePointsChange(sIndex, qIndex, e.target.value)}
+                      placeholder="Points"
+                      className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300"
+                    />
+                  </div>
+
+                  <hr className="mt-4 border-gray-300" />
+
+                  <button
+                    onClick={() => toggleSettings(sIndex, qIndex)}
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
@@ -354,30 +626,47 @@ export default function QuizBuilder({ quizTypeLabel }) {
       {/* ACTIVITY NAME */}
       <div className="w-full mb-4">
         <label className="block text-gray-700 text-base mb-1">{quizTypeLabel} Name</label>
-        <input
-          type="text"
-          value={activityName}
-          onChange={(e) => setActivityName(e.target.value)}
-          placeholder={`Enter your ${quizTypeLabel.toLowerCase()} name...`}
-          className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:border-blue-300 focus:outline-none"
-        />
+        <div className="relative">
+          <textarea
+            ref={(el) => (textareaRefs.current[`activity-name`] = el)}
+            value={activityName}
+            onChange={(e) => {
+              setActivityName(e.target.value);
+              autoResize(e.target);
+            }}
+            placeholder={`Enter your ${quizTypeLabel.toLowerCase()} name...`}
+            className="w-full px-4 py-2 pr-8 border border-gray-300 rounded-xl focus:border-blue-300 focus:outline-none resize-none overflow-hidden"
+            rows="1"
+            onInput={(e) => autoResize(e.target)}
+          />
+          <button
+            onClick={() => setActivityName("")}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* QUIZ TYPE SELECTION */}
-      <div className="w-full mb-6">
-        <label className="block text-gray-700 text-base mb-1">Add Question Type</label>
-        <div className="grid grid-cols-3 gap-3">
-          {["Multiple Choice", "Answer", "File Upload"].map((type) => (
-            <div
-              key={type}
-              onClick={() => handleAddSection(type)}
-              className="cursor-pointer border rounded-xl py-4 text-center transition bg-white hover:bg-gray-100 border-gray-300"
-            >
-              {type}
-            </div>
-          ))}
+      {showSelector && (
+        <div className="w-full mb-6">
+          <label className="block text-gray-700 text-base mb-1">
+            {sections.length === 0 ? "Select" : "Add"} Question Type
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            {["Multiple Choice", "Answer", "File Upload"].map((type) => (
+              <div
+                key={type}
+                onClick={() => handleAddSection(type)}
+                className="cursor-pointer border rounded-xl py-4 text-center transition bg-white hover:bg-gray-100 border-gray-300"
+              >
+                {type}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* SECTIONS */}
       {sections.map((section, sIndex) => (
@@ -386,6 +675,15 @@ export default function QuizBuilder({ quizTypeLabel }) {
           {renderSectionBuilder(section, sIndex)}
         </div>
       ))}
+
+      {!showSelector && sections.length > 0 && (
+        <button
+          onClick={() => setShowSelector(true)}
+          className="px-4 py-2 mt-4 text-blue-500 hover:underline"
+        >
+          + Add Another Question Type
+        </button>
+      )}
     </div>
   );
 }
