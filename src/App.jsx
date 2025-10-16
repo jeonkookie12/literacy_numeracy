@@ -144,7 +144,7 @@ function App() {
             }
           />
           <Route
-            path="/manage-users/learners/section-details/:sectionName"
+            path="/manage-users/learners/section-details"
             element={
               <PrivateRoute allowedRoles={['admin']}>
                 <SectionDetails />
