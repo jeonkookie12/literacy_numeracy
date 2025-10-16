@@ -3,10 +3,9 @@ import subjectIcon from "../../assets/admin/subject.svg";
 import dateIcon from "../../assets/admin/date.svg";
 import languageIcon from "../../assets/admin/language.svg";
 import uploadIcon from "../../assets/admin/upload.svg";
-import getIcon from "../../assets/admin/get.svg";
-import fileIcon from "../../assets/admin/file.svg"; 
-import dropdownIcon from "../../assets/admin/dropdown.svg"; 
-import searchIcon from "../../assets/admin/search.svg"; 
+import fileIcon from "../../assets/admin/file.svg";
+import dropdownIcon from "../../assets/admin/dropdown.svg";
+import searchIcon from "../../assets/admin/search.svg";
 
 export default function LearningMaterials() {
   const [search, setSearch] = useState("");
@@ -17,10 +16,10 @@ export default function LearningMaterials() {
   const [tags, setTags] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [titleError, setTitleError] = useState("");
+  const [tagsError, setTagsError] = useState("");
 
-  const handleUploadClick = () => {
-    setIsModalOpen(true);
-  };
+  const handleUploadClick = () => setIsModalOpen(true);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -30,10 +29,30 @@ export default function LearningMaterials() {
     setTags([]);
     setSelectedFiles([]);
     setErrorMessage("");
+    setTitleError("");
+    setTagsError("");
   };
 
   const handleUpload = () => {
-    // Handle upload logic here
+    let valid = true;
+
+    if (!resourceTitle.trim()) {
+      setTitleError("Title is required.");
+      valid = false;
+    } else {
+      setTitleError("");
+    }
+
+    if (tags.length === 0) {
+      setTagsError("At least one tag is required.");
+      valid = false;
+    } else {
+      setTagsError("");
+    }
+
+    if (!valid) return;
+
+    // Upload logic goes here...
     handleCloseModal();
   };
 
@@ -45,22 +64,29 @@ export default function LearningMaterials() {
       const newTag = value.slice(0, -1).trim();
       if (newTag && !tags.includes(newTag)) {
         setTags([...tags, newTag]);
+        setTagsError("");
       }
       setTagsInput("");
     }
   };
 
-  const removeTag = (tagToRemove) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
+  const removeTag = (tagToRemove) =>
+    setTags(tags.filter((tag) => tag !== tagToRemove));
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    const validExtensions = ['pdf', 'png', 'jpeg', 'jpg', 'mp4'];
-    const invalidFiles = files.filter(file => !validExtensions.some(ext => file.name.toLowerCase().endsWith(`.${ext}`)));
+    const validExtensions = ["pdf", "png", "jpeg", "jpg", "mp4"];
+    const invalidFiles = files.filter(
+      (file) =>
+        !validExtensions.some((ext) =>
+          file.name.toLowerCase().endsWith(`.${ext}`)
+        )
+    );
 
     if (invalidFiles.length > 0) {
-      setErrorMessage("Only .pdf, .png, .jpeg, .jpg, and .mp4 files are allowed.");
+      setErrorMessage(
+        "Only .pdf, .png, .jpeg, .jpg, and .mp4 files are allowed."
+      );
       return;
     }
 
@@ -76,22 +102,24 @@ export default function LearningMaterials() {
 
   const truncateFilename = (name) => {
     if (name.length <= 20) return name;
-    const parts = name.split('.');
+    const parts = name.split(".");
     const ext = parts.pop();
-    const base = parts.join('.');
-    const truncatedBase = base.slice(0, 17) + '...';
-    return `${truncatedBase}.${ext}`;
+    const base = parts.join(".");
+    return `${base.slice(0, 17)}....${ext}`;
   };
 
   const handleViewFile = (file) => {
     const url = URL.createObjectURL(file);
-    window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 1000 * 60); // revoke after 1 min
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   return (
     <div className="min-h-screen p-10 text-black">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">Manage Materials</h2>
+      <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+        Manage Materials
+      </h2>
+
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div className="flex flex-1 gap-2 flex-wrap">
@@ -136,7 +164,10 @@ export default function LearningMaterials() {
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center">
+            <div
+              key={i}
+              className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center"
+            >
               <img src={fileIcon} alt="File" className="w-22 h-22 mb-2" />
               <p className="text-black">Literacy / IV · 4 hours ago</p>
             </div>
@@ -146,25 +177,43 @@ export default function LearningMaterials() {
 
       {/* Upload Resources Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/30 bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-2xl p-6 relative">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-2xl h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="text-xl font-semibold text-gray-800">Upload Resources</h3>
-              <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            <div className="flex justify-between items-center p-6 pb-4">
+              <h3 className="text-xl font-semibold text-gray-800">
+                Upload Resources
+              </h3>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
-            <hr className="border-gray-300 mb-5" />
+            <hr className="border-gray-300" />
 
-            {/* Body */}
-            <div className="flex flex-col items-center gap-5">
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[15px]">
+              {/* File Upload */}
               {!selectedFiles.length ? (
-                <>
+                <div className="flex flex-col items-center gap-4">
                   <img src={uploadIcon} alt="Upload" className="w-14 h-14" />
-                  <h4 className="text-lg font-medium text-gray-800">Upload files here</h4>
+                  <h4 className="text-lg font-medium text-gray-800">
+                    Upload files here
+                  </h4>
                   <input
                     type="file"
                     multiple
@@ -172,28 +221,44 @@ export default function LearningMaterials() {
                     onChange={handleFileChange}
                     className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-300 file:text-white hover:file:bg-blue-400"
                   />
-                  {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
-                </>
+                  {errorMessage && (
+                    <p className="text-red-500 text-sm">{errorMessage}</p>
+                  )}
+                </div>
               ) : (
-                <div className="w-full">
-                  <div className="flex flex-wrap gap-3 mb-3 -mx-1">
+                <div>
+                  <div className="flex flex-wrap gap-3 mb-3">
                     {selectedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center bg-gray-200 rounded-full px-3 py-1 text-sm text-gray-800">
-                        <span 
-                          className="truncate cursor-pointer hover:underline" 
+                      <div
+                        key={index}
+                        className="flex flex-wrap items-center bg-gray-200 rounded-full px-3 py-2 text-sm text-gray-800 break-words"
+                      >
+                        <span
+                          className="cursor-pointer hover:underline break-all"
                           onClick={() => handleViewFile(file)}
                         >
                           {truncateFilename(file.name)} ({formatFileSize(file.size)})
                         </span>
                         <button
-                          onClick={() => {
-                            const newFiles = selectedFiles.filter((_, i) => i !== index);
-                            setSelectedFiles(newFiles);
-                          }}
+                          onClick={() =>
+                            setSelectedFiles(
+                              selectedFiles.filter((_, i) => i !== index)
+                            )
+                          }
                           className="ml-2 text-gray-500 hover:text-gray-700 flex-shrink-0"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -206,40 +271,77 @@ export default function LearningMaterials() {
                     onChange={handleFileChange}
                     className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-300 file:text-white hover:file:bg-blue-400"
                   />
-                  {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
                 </div>
               )}
-              <div className="w-full">
-                <label className="block text-red-500 text-sm mb-1">Title (required) <span className="text-gray-500">ⓘ</span></label>
-                <input
-                  type="text"
+
+              {/* Title */}
+              <div>
+                <label className="block text-red-500 text-sm mb-1">
+                  Title (required) <span className="text-gray-500">ⓘ</span>
+                </label>
+                <textarea
                   value={resourceTitle}
-                  onChange={(e) => setResourceTitle(e.target.value)}
+                  onChange={(e) => {
+                    setResourceTitle(e.target.value);
+                    setTitleError("");
+                  }}
                   placeholder="Add a title that describes your resources"
-                  className="w-full px-5 py-2 border border-gray-300 rounded-xl text-sm text-gray-500 focus:outline-none focus:border-blue-300"
+                  rows={1}
+                  onInput={(e) => {
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  className={`w-full px-5 py-2 border ${
+                    titleError ? "border-red-500" : "border-gray-300"
+                  } rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-300 resize-none overflow-hidden`}
                 />
+                {titleError && (
+                  <p className="text-red-500 text-sm mt-1">{titleError}</p>
+                )}
               </div>
-              <div className="w-full">
-                <label className="block text-red-500 text-sm mb-1">Description <span className="text-gray-500">ⓘ</span></label>
+
+              {/* Description */}
+              <div>
+                <label className="block text-red-500 text-sm mb-1">
+                  Description <span className="text-gray-500">ⓘ</span>
+                </label>
                 <textarea
                   value={resourceDescription}
                   onChange={(e) => setResourceDescription(e.target.value)}
                   placeholder="Add description for your resources"
-                  className="w-full px-5 py-2 border border-gray-300 rounded-xl text-sm text-gray-500 focus:outline-none focus:border-blue-300 resize-y"
+                  className="w-full px-5 py-2 border border-gray-300 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-300 resize-y"
                   rows="4"
                 />
               </div>
-              <div className="w-full">
-                <div className="flex flex-wrap gap-2 mb-1">
+
+              {/* Tags */}
+              <div>
+                <label className="block text-red-500 text-sm mb-1">
+                  Tags (required) <span className="text-gray-500">ⓘ</span>
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
                   {tags.map((tag) => (
-                    <div key={tag} className="flex items-center bg-gray-200 rounded-full px-3 py-1 text-sm text-gray-800">
-                      {tag}
+                    <div
+                      key={tag}
+                      className="flex flex-wrap items-center bg-gray-200 rounded-full px-3 py-2 text-sm text-gray-800 break-words max-w-full"
+                    >
+                      <span className="break-all">{tag}</span>
                       <button
                         onClick={() => removeTag(tag)}
-                        className="ml-2 text-gray-500 hover:text-gray-700"
+                        className="ml-2 text-gray-500 hover:text-gray-700 flex-shrink-0"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -249,16 +351,20 @@ export default function LearningMaterials() {
                   type="text"
                   value={tagsInput}
                   onChange={handleTagsInputChange}
-                  placeholder="Tags"
-                  className="w-full px-5 py-2 border border-gray-300 rounded-xl text-sm text-gray-500 focus:outline-none focus:border-blue-300"
+                  placeholder="Enter a tag, then press comma"
+                  className={`w-full px-5 py-2 border ${
+                    tagsError ? "border-red-500" : "border-gray-300"
+                  } rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-300`}
                 />
-                <p className="text-sm text-gray-500 mt-0">Enter a comma after each tag</p>
+                {tagsError && (
+                  <p className="text-red-500 text-sm mt-1">{tagsError}</p>
+                )}
               </div>
             </div>
 
             {/* Footer */}
-            <hr className="border-gray-300 my-5" />
-            <div className="flex justify-end gap-3">
+            <hr className="border-gray-300" />
+            <div className="flex justify-end gap-3 p-6 pt-4">
               <button
                 onClick={handleCloseModal}
                 className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300"

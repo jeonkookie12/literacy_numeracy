@@ -17,6 +17,7 @@
     "react-dom": "^19.1.0",
     "react-google-recaptcha": "^3.1.0",
     "react-router-dom": "^7.6.3",
+    "react-text-to-speech": "^5.0.0",
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
