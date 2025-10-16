@@ -4,6 +4,10 @@ import deleteIcon from "../../assets/admin/delete.svg";
 import upIcon from "../../assets/admin/arrow-up.svg";
 import downIcon from "../../assets/admin/arrow-down.svg";
 import imageIcon from "../../assets/admin/image.svg";
+import multipleChoiceIcon from "../../assets/admin/radio_button.svg"; // For Multiple Choice selector
+import answerIcon from "../../assets/admin/text.svg"; // For Answer selector
+import fileUploadIcon from "../../assets/admin/docu_up.svg"; // For File Upload selector
+import writeIcon from "../../assets/admin/write.svg"; // Placeholder for Write selector
 
 export default function QuizBuilder({ quizTypeLabel }) {
   const [activityName, setActivityName] = useState("");
@@ -89,6 +93,8 @@ export default function QuizBuilder({ quizTypeLabel }) {
       newQuestion = { type, text: "", expectedAnswer: "", points: "" };
     } else if (type === "File Upload") {
       newQuestion = { type, text: "", points: "" };
+    } else if (type === "Write") {
+      newQuestion = { type, text: "", points: "" };
     }
     setQuestions([...questions, newQuestion]);
     setShowSelector(false);
@@ -135,22 +141,6 @@ export default function QuizBuilder({ quizTypeLabel }) {
     setQuestions(newQuestions);
   };
 
-  const handleClearOption = (qIndex, oIndex) => {
-    const newQuestions = [...questions];
-    const question = newQuestions[qIndex];
-    if (question.type !== "Multiple Choice") return;
-    question.options[oIndex].text = "";
-    setQuestions(newQuestions);
-  };
-
-  const handleClearExpectedAnswer = (qIndex) => {
-    const newQuestions = [...questions];
-    const question = newQuestions[qIndex];
-    if (question.type !== "Answer") return;
-    question.expectedAnswer = "";
-    setQuestions(newQuestions);
-  };
-
   const handleQuestionChange = (qIndex, value) => {
     const newQuestions = [...questions];
     newQuestions[qIndex].text = value;
@@ -173,7 +163,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
     if (question.type !== "Answer") return;
     question.expectedAnswer = value;
     setQuestions(newQuestions);
-    autoResize(textareaRefs.current[`answer-${qIndex}`]);
+    autoResize(textareaRefs.current[`answer-correct-${qIndex}`]);
   };
 
   const handlePointsChange = (qIndex, value) => {
@@ -241,15 +231,15 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   />
                   <button
                     onClick={() => openImageModal(qIndex)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
-                    <img src={imageIcon} alt="Add Image" className="w-8 h-8" />
+                    <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
 
                 {question.options.map((option, oIndex) => (
-                  <div key={oIndex} className="group flex items-center gap-2 mb-2 relative">
+                  <div key={oIndex} className="group flex items-center gap-2 mb-2">
                     <input type="radio" disabled className="accent-blue-500" />
                     <div className="flex-1 relative">
                       <textarea
@@ -257,22 +247,16 @@ export default function QuizBuilder({ quizTypeLabel }) {
                         value={option.text}
                         onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
                         placeholder={`Option ${oIndex + 1}`}
-                        className="w-full px-3 py-1 pr-16 border border-gray-300 rounded-lg focus:border-blue-300 resize-none overflow-hidden"
+                        className="w-full px-3 py-1 border border-gray-300 rounded-lg focus:border-blue-300 resize-none overflow-hidden"
                         rows="1"
                         onInput={(e) => autoResize(e.target)}
                       />
                       <button
                         onClick={() => openImageModal(qIndex)}
-                        className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
                         title="Add Image"
                       >
                         <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleClearOption(qIndex, oIndex)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
-                      >
-                        ✕
                       </button>
                     </div>
                     {question.options.length > 1 && (
@@ -416,10 +400,10 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   />
                   <button
                     onClick={() => openImageModal(qIndex)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
-                    <img src={imageIcon} alt="Add Image" className="w-8 h-8" />
+                    <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
 
@@ -430,9 +414,9 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   <textarea
                     ref={(el) => (textareaRefs.current[`answer-${qIndex}`] = el)}
                     value={question.expectedAnswer}
-                    onChange={(e) => handleExpectedAnswerChange(qIndex, e.target.value)}
+                    disabled
                     placeholder="Expected Answer"
-                    className="w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 mb-3 resize-none overflow-hidden"
                     rows="1"
                     onInput={(e) => autoResize(e.target)}
                   />
@@ -568,10 +552,10 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   />
                   <button
                     onClick={() => openImageModal(qIndex)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
-                    <img src={imageIcon} alt="Add Image" className="w-8 h-8" />
+                    <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
 
@@ -581,14 +565,117 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   onClick={() => toggleSettings(qIndex)}
                   className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
                 >
-                  Set Correct Answer and Points
+                  Set Points
                 </button>
               </>
             )}
 
             {openQuestionSettings.has(`${qIndex}`) && (
               <div className="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
-                <h4 className="font-semibold mb-2">Correct Answer</h4>
+                <h4 className="font-semibold mb-2">Settings</h4>
+                <p className="mb-4">
+                  <strong>Question:</strong>{" "}
+                  <span className="inline-block">{question.text || "No question text entered"}</span>
+                </p>
+
+                <div className="mb-4">
+                  <label className="block text-sm text-gray-500 mb-1">Points</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={question.points}
+                    onChange={(e) => handlePointsChange(qIndex, e.target.value)}
+                    placeholder="Points"
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300"
+                  />
+                </div>
+
+                <hr className="mt-4 border-gray-300" />
+
+                <button
+                  onClick={() => toggleSettings(qIndex)}
+                  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    } else if (question.type === "Write") {
+      return (
+        <div className="w-full max-w-3xl mx-auto flex flex-col gap-4 px-4">
+          <div className="w-full border border-gray-300 p-4 rounded-xl shadow-sm bg-white relative">
+            {!openQuestionSettings.has(`${qIndex}`) && (
+              <>
+                <div className="absolute right-3 top-3 flex gap-2">
+                  <button
+                    onClick={() => handleCopyQuestion(qIndex)}
+                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                    title="Duplicate Question"
+                  >
+                    <img src={copyIcon} alt="Copy" className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleMoveQuestion(qIndex, -1)}
+                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                    title="Move Up"
+                  >
+                    <img src={upIcon} alt="Up" className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleMoveQuestion(qIndex, 1)}
+                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
+                    title="Move Down"
+                  >
+                    <img src={downIcon} alt="Down" className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteQuestion(qIndex)}
+                    className="text-red-500 hover:opacity-70 transition-opacity cursor-pointer"
+                    title="Delete Question"
+                  >
+                    <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <label className="block text-sm text-gray-500 mb-1">
+                  Question {qIndex + 1} (Write)
+                </label>
+                <div className="flex items-start gap-2">
+                  <textarea
+                    ref={(el) => (textareaRefs.current[`question-${qIndex}`] = el)}
+                    value={question.text}
+                    onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
+                    placeholder="Enter question"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                    rows="1"
+                    onInput={(e) => autoResize(e.target)}
+                  />
+                  <button
+                    onClick={() => openImageModal(qIndex)}
+                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
+                    title="Add Image"
+                  >
+                    <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <hr className="mt-4 border-gray-300" />
+
+                <button
+                  onClick={() => toggleSettings(qIndex)}
+                  className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
+                >
+                  Set Points
+                </button>
+              </>
+            )}
+
+            {openQuestionSettings.has(`${qIndex}`) && (
+              <div className="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
+                <h4 className="font-semibold mb-2">Settings</h4>
                 <p className="mb-4">
                   <strong>Question:</strong>{" "}
                   <span className="inline-block">{question.text || "No question text entered"}</span>
@@ -680,25 +767,43 @@ export default function QuizBuilder({ quizTypeLabel }) {
       ))}
 
       {!showSelector && questions.length > 0 && (
-        <button
-          onClick={() => setShowSelector(true)}
-          className="px-4 py-2 mt-4 text-blue-500 hover:underline cursor-pointer mx-auto"
-        >
-          + Add Another Question Type
-        </button>
+        <div className="relative flex items-center mx-auto">
+          <button
+            onClick={() => setShowSelector(true)}
+            className="px-4 py-2 mt-4 text-blue-500 hover:underline cursor-pointer"
+          >
+            Add Another Question Type
+          </button>
+        </div>
       )}
       {showSelector && (
         <div ref={selectorRef} className="w-full max-w-3xl mx-auto mb-6 px-4">
-          <label className="block text-gray-700 text-base mb-1 text-center">
-            {questions.length === 0 ? "Select" : "Add"} Question Type
-          </label>
-          <div className="grid grid-cols-3 gap-3">
-            {["Multiple Choice", "Answer", "File Upload"].map((type) => (
+          <div className="relative flex items-center justify-center mb-1">
+            <label className="block text-gray-700 text-base text-center">
+              {questions.length === 0 ? "Select" : "Add"} Question Type
+            </label>
+            {questions.length > 0 && (
+              <button
+                onClick={() => setShowSelector(false)}
+                className="absolute right-0 text-red-500 hover:text-red-700 cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { type: "Multiple Choice", icon: multipleChoiceIcon },
+              { type: "Answer", icon: answerIcon },
+              { type: "File Upload", icon: fileUploadIcon },
+              { type: "Write", icon: writeIcon },
+            ].map(({ type, icon }) => (
               <div
                 key={type}
                 onClick={() => handleAddQuestion(type)}
-                className="cursor-pointer border border-gray-300 rounded-xl py-4 text-center transition bg-white hover:bg-gray-100"
+                className="cursor-pointer border border-gray-300 rounded-xl py-4 text-center transition bg-white hover:bg-gray-100 flex items-center justify-center gap-2"
               >
+                <img src={icon} alt={type} className="w-5 h-5" />
                 {type}
               </div>
             ))}
