@@ -9,7 +9,6 @@ import dropdownIcon from "../../assets/admin/dropdown.svg";
 import searchIcon from "../../assets/admin/search.svg";
 import QuizBuilder from "../../components/admin/quiz_maker";
 
-
 export default function ActivityResources() {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,7 +50,7 @@ export default function ActivityResources() {
     const totalPages =
       selectedActivities.length > 0 ? 2 + selectedActivities.length : 2;
 
-    // ✅ Validation for page 1
+    // Validation for page 1
     if (currentPage === 1) {
       const newErrors = {};
       if (!activityTitle.trim()) newErrors.title = "Activity Title is required.";
@@ -76,7 +75,6 @@ export default function ActivityResources() {
   const handlePrevious = () => {
     setCurrentPage((prev) => {
       const updated = [...completedSteps];
-      // remove checkmark when going back
       const idx = updated.indexOf(prev);
       if (idx !== -1) updated.splice(idx, 1);
       setCompletedSteps(updated);
@@ -179,7 +177,7 @@ export default function ActivityResources() {
       {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-2xl p-6 relative flex flex-col h-[95vh]">
+          <div className="bg-white rounded-xl w-full max-w-4xl p-6 relative flex flex-col h-[95vh]">
             {/* HEADER */}
             <div className="flex justify-between items-center mb-1">
               <h3 className="text-lg font-semibold text-gray-800">
@@ -208,8 +206,8 @@ export default function ActivityResources() {
             </div>
             <hr className="border-gray-300 mb-4" />
 
-            {/* ✅ PROGRESS BAR with check icons */}
-            <div className="w-full mb-6">
+            {/* PROGRESS BAR */}
+            <div className="w-full max-w-3xl mx-auto mb-6">
               <div className="flex justify-between relative">
                 {(() => {
                   const steps = ["Details"];
@@ -266,11 +264,11 @@ export default function ActivityResources() {
             </div>
 
             {/* BODY */}
-            <div className="flex-1 overflow-y-auto mt-2 flex flex-col items-center justify-start pb-20">
-              <div className="w-full">
+            <div className="flex-1 overflow-y-auto mt-2 flex flex-col pb-10">
+              <div className="w-full max-w-md">
                 {/* DETAILS PAGE */}
                 {currentPage === 1 && (
-                  <div className="flex flex-col items-center gap-4">
+                  <div className="flex flex-col gap-4">
                     {/* ACTIVITY TITLE */}
                     <div className="w-full">
                       <label className="block text-gray-800 text-base mb-1">
@@ -386,7 +384,7 @@ export default function ActivityResources() {
 
                 {/* QUIZ BUILDER FOR EACH ACTIVITY TYPE */}
                 {selectedActivities.map((type, index) => {
-                  const pageNumber = 2 + index; // Page for each selected type
+                  const pageNumber = 2 + index;
                   if (currentPage !== pageNumber) return null;
 
                   return (
@@ -396,7 +394,7 @@ export default function ActivityResources() {
 
                 {/* PREVIEW PAGE */}
                 {currentPage === 2 + selectedActivities.length && (
-                  <div className="flex flex-col items-center justify-center text-gray-700">
+                  <div className="flex flex-col text-gray-700">
                     <h2 className="text-lg font-semibold mb-2">Preview</h2>
                     <p className="text-sm text-gray-500">
                       Review your quiz before publishing.
@@ -404,12 +402,11 @@ export default function ActivityResources() {
                   </div>
                 )}
               </div>
-
             </div>
 
             {/* FOOTER */}
-            <div className="mt-auto p-2 bg-white border-t border-gray-300">
-              <div className="flex justify-end gap-3">
+            <div className="mt-auto bg-white border-t border-gray-300 p-2">
+              <div className="flex justify-end gap-3 max-w-4xl mx-auto">
                 {currentPage > 1 && (
                   <button
                     onClick={handlePrevious}
@@ -418,7 +415,6 @@ export default function ActivityResources() {
                     Back
                   </button>
                 )}
-
                 <button
                   onClick={
                     currentPage ===
@@ -445,4 +441,3 @@ export default function ActivityResources() {
     </div>
   );
 }
-
