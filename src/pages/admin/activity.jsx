@@ -135,7 +135,7 @@ export default function ActivityResources() {
             <img src={searchIcon} alt="Search" className="w-5 h-5" />
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
+            <button className="flex items-center gap-2 bg-blue-300 px Mait-4 py-2 rounded-xl shadow text-sm">
               <img src={subjectIcon} alt="Subject" className="w-6 h-6" /> Subject
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
@@ -177,10 +177,10 @@ export default function ActivityResources() {
       {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-4xl p-6 relative flex flex-col h-[95vh]">
+          <div className="bg-white rounded-xl w-full max-w-3xl p-6 relative flex flex-col h-[95vh]">
             {/* HEADER */}
             <div className="flex justify-between items-center mb-1">
-              <h3 className="text-lg font-semibold text-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800 max-w-[80%] truncate">
                 {currentPage === 1
                   ? "Create Activity"
                   : activityTitle || "Activity/Test"}
@@ -207,7 +207,7 @@ export default function ActivityResources() {
             <hr className="border-gray-300 mb-4" />
 
             {/* PROGRESS BAR */}
-            <div className="w-full max-w-3xl mx-auto mb-6">
+            <div className="w-full max-w-2xl mx-auto mb-6">
               <div className="flex justify-between relative">
                 {(() => {
                   const steps = ["Details"];
@@ -264,11 +264,12 @@ export default function ActivityResources() {
             </div>
 
             {/* BODY */}
-            <div className="flex-1 overflow-y-auto mt-2 flex flex-col pb-10">
-              <div className="w-full max-w-md">
+            <div className="flex-1 overflow-y-auto mt-2 flex flex-col pb-10 px-4">
+              <div className="w-full max-w-3xl mx-auto">
                 {/* DETAILS PAGE */}
                 {currentPage === 1 && (
                   <div className="flex flex-col gap-4">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-2">Details</h2>
                     {/* ACTIVITY TITLE */}
                     <div className="w-full">
                       <label className="block text-gray-800 text-base mb-1">
@@ -278,7 +279,7 @@ export default function ActivityResources() {
                         type="text"
                         value={activityTitle}
                         onChange={(e) => setActivityTitle(e.target.value)}
-                        placeholder="Add a title that describes your activity"
+                        placeholders="Add a title that describes your activity"
                         className={`w-full px-5 py-2 border rounded-xl text-base text-gray-700 focus:outline-none ${
                           fieldErrors.title
                             ? "border-red-500"
@@ -388,14 +389,17 @@ export default function ActivityResources() {
                   if (currentPage !== pageNumber) return null;
 
                   return (
-                    <QuizBuilder key={type} quizTypeLabel={type} />
+                    <div key={type} className="flex flex-col gap-4">
+                      <h2 className="text-lg font-semibold text-gray-800 mb-2">{type}</h2>
+                      <QuizBuilder quizTypeLabel={type} />
+                    </div>
                   );
                 })}
 
                 {/* PREVIEW PAGE */}
                 {currentPage === 2 + selectedActivities.length && (
-                  <div className="flex flex-col text-gray-700">
-                    <h2 className="text-lg font-semibold mb-2">Preview</h2>
+                  <div className="flex flex-col gap-4">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-2">Preview</h2>
                     <p className="text-sm text-gray-500">
                       Review your quiz before publishing.
                     </p>
@@ -406,7 +410,7 @@ export default function ActivityResources() {
 
             {/* FOOTER */}
             <div className="mt-auto bg-white border-t border-gray-300 p-2">
-              <div className="flex justify-end gap-3 max-w-4xl mx-auto">
+              <div className="flex justify-end gap-3 max-w-3xl mx-auto">
                 {currentPage > 1 && (
                   <button
                     onClick={handlePrevious}
@@ -415,6 +419,7 @@ export default function ActivityResources() {
                     Back
                   </button>
                 )}
+
                 <button
                   onClick={
                     currentPage ===
