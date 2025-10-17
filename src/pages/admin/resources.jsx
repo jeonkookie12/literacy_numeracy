@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import subjectIcon from "../../assets/admin/subject.svg";
 import dateIcon from "../../assets/admin/date.svg";
 import languageIcon from "../../assets/admin/language.svg";
@@ -11,6 +11,7 @@ export default function LearningMaterials() {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [resourceTitle, setResourceTitle] = useState("");
   const [resourceDescription, setResourceDescription] = useState("");
   const [tagsInput, setTagsInput] = useState("");
@@ -19,6 +20,10 @@ export default function LearningMaterials() {
   const [errorMessage, setErrorMessage] = useState("");
   const [titleError, setTitleError] = useState("");
   const [tagsError, setTagsError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState("");
+
+  const fileInputRef = useRef(null);
 
   const handleUploadClick = () => setIsModalOpen(true);
 
@@ -68,11 +73,33 @@ export default function LearningMaterials() {
       setTagsError("");
     }
 
+    if (selectedFiles.length === 0) {
+      setErrorMessage("At least one file is required.");
+      valid = false;
+    } else {
+      setErrorMessage("");
+    }
+
     if (!valid) return;
 
-    // Upload logic goes here...
-    resetForm();
-    setIsModalOpen(false);
+    setIsUploadModalOpen(true);
+    setUploadError("");
+    simulateUpload();
+  };
+
+  const simulateUpload = () => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      setUploadProgress(progress);
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsUploadModalOpen(false);
+          window.location.reload();
+        }, 2000);
+      }
+    }, 500);
   };
 
   const handleTagsInputChange = (e) => {
@@ -93,7 +120,7 @@ export default function LearningMaterials() {
     setTags(tags.filter((tag) => tag !== tagToRemove));
 
   const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || e.dataTransfer.files);
     const validExtensions = ["pdf", "png", "jpeg", "jpg", "mp4"];
     const invalidFiles = files.filter(
       (file) =>
@@ -111,6 +138,15 @@ export default function LearningMaterials() {
 
     setErrorMessage("");
     setSelectedFiles([...selectedFiles, ...files]);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    handleFileChange(e);
   };
 
   const formatFileSize = (bytes) => {
@@ -226,23 +262,37 @@ export default function LearningMaterials() {
 
             {/* Scrollable Body */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[15px]">
+              {errorMessage && (
+                <div className="bg-red-100 text-red-700 px-4 py-2 rounded">
+                  {errorMessage}
+                </div>
+              )}
               {/* File Upload */}
               {!selectedFiles.length ? (
-                <div className="flex flex-col items-center gap-4">
+                <div
+                  className="flex flex-col items-center gap-4 border-2 border-dashed border-gray-300 p-6 rounded-xl"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
                   <img src={uploadIcon} alt="Upload" className="w-14 h-14" />
                   <h4 className="text-lg font-medium text-gray-800">
-                    Upload files here
+                    Drag and drop your files here or select files
                   </h4>
+                  <p className="text-gray-500 text-sm">Supported files: pdf, png, jpeg, jpg, mp4. </p>
                   <input
+                    ref={fileInputRef}
                     type="file"
                     multiple
                     accept=".pdf,.png,.jpeg,.jpg,.mp4"
                     onChange={handleFileChange}
-                    className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-300 file:text-white hover:file:bg-blue-400"
+                    className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-300 file:text-white hover:file:bg-blue-400 hidden"
                   />
-                  {errorMessage && (
-                    <p className="text-red-500 text-sm">{errorMessage}</p>
-                  )}
+                  <button
+                    onClick={() => fileInputRef.current.click()}
+                    className="px-4 py-2 bg-blue-300 text-white rounded-xl hover:bg-blue-400"
+                  >
+                    Select Files
+                  </button>
                 </div>
               ) : (
                 <div>
@@ -283,13 +333,26 @@ export default function LearningMaterials() {
                       </div>
                     ))}
                   </div>
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.png,.jpeg,.jpg,.mp4"
-                    onChange={handleFileChange}
-                    className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-300 file:text-white hover:file:bg-blue-400"
-                  />
+                  <div
+                    className="border-2 border-dashed border-gray-300 p-6 rounded-xl"
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".pdf,.png,.jpeg,.jpg,.mp4"
+                      onChange={handleFileChange}
+                      className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-300 file:text-white hover:file:bg-blue-400 hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current.click()}
+                      className="px-4 py-2 bg-blue-300 text-white rounded-xl hover:bg-blue-400"
+                    >
+                      Add More Files
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -432,6 +495,49 @@ export default function LearningMaterials() {
                 Confirm
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-md p-6 text-center">
+            {uploadProgress < 100 ? (
+              <>
+                <div className="flex justify-center mb-4">
+                  <div className="w-12 h-12 border-4 border-t-4 border-blue-500 rounded-full animate-spin"></div>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Uploading...</h3>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-gray-600">{uploadProgress}% uploaded</p>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-center mb-4">
+                  <svg
+                    className="w-12 h-12 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="12" r="10" strokeWidth="2" stroke="currentColor" fill="none" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Upload Completed</h3>
+              </>
+            )}
+            {uploadError && (
+              <div className="bg-red-100 text-red-700 px-4 py-2 rounded mt-4">
+                {uploadError}
+              </div>
+            )}
           </div>
         </div>
       )}
