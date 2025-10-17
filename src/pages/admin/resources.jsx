@@ -243,6 +243,7 @@ export default function LearningMaterials() {
       return "just now";
     }
   };
+  
   window.onbeforeunload = (event) => {
     if (resourceTitle.trim() || resourceDescription.trim() || tagsInput.trim() || tags.length > 0 || selectedFiles.length > 0) {
       const confirmationMessage = "You have unsaved changes. Are you sure you want to refresh?";
