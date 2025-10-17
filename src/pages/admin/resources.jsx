@@ -56,50 +56,75 @@ export default function LearningMaterials() {
     setTagsError("");
   };
 
-  const handleUpload = () => {
-    let valid = true;
+ const handleUpload = async () => {
+  let valid = true;
 
-    if (!resourceTitle.trim()) {
-      setTitleError("Title is required.");
-      valid = false;
-    } else {
-      setTitleError("");
+  if (!resourceTitle.trim()) {
+    setTitleError("Title is required.");
+    valid = false;
+  } else {
+    setTitleError("");
+  }
+
+  if (tags.length === 0) {
+    setTagsError("At least one tag is required.");
+    valid = false;
+  } else {
+    setTagsError("");
+  }
+
+  if (selectedFiles.length === 0) {
+    setErrorMessage("At least one file is required.");
+    valid = false;
+  } else {
+    setErrorMessage("");
+  }
+
+  if (!valid) return;
+
+  setIsUploadModalOpen(true);
+  setUploadError("");
+
+  const formData = new FormData();
+    formData.append("resourceTitle", resourceTitle.trim()); 
+    formData.append("resourceDescription", resourceDescription.trim());
+    formData.append("tags", JSON.stringify(tags)); 
+
+    // Append each file with array notation to prevent overwriting
+    selectedFiles.forEach((file, index) => {
+      formData.append(`files[${index}]`, file); // Use files[0], files[1], etc.
+    });
+
+    // Debug FormData contents
+    for (let pair of formData.entries()) {
+      console.log("FormData key-value:", pair[0], pair[1]);
     }
 
-    if (tags.length === 0) {
-      setTagsError("At least one tag is required.");
-      valid = false;
-    } else {
-      setTagsError("");
-    }
+    try {
+      const response = await fetch("http://localhost/literacynumeracy/admin/upload_resources.php", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
 
-    if (selectedFiles.length === 0) {
-      setErrorMessage("At least one file is required.");
-      valid = false;
-    } else {
-      setErrorMessage("");
-    }
+      const result = await response.json();
+      console.log("Response:", result);
 
-    if (!valid) return;
-
-    setIsUploadModalOpen(true);
-    setUploadError("");
-    simulateUpload();
-  };
-
-  const simulateUpload = () => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 25;
-      setUploadProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
+      if (result.success) {
         setTimeout(() => {
           setIsUploadModalOpen(false);
-          window.location.reload();
+          resetForm();
+          setIsModalOpen(false);
         }, 2000);
+      } else {
+        setUploadError(result.message || "Upload failed");
+        setTimeout(() => setIsUploadModalOpen(false), 2000);
       }
-    }, 200);
+    } catch (error) {
+      setUploadError("An error occurred during upload");
+      setTimeout(() => setIsUploadModalOpen(false), 2000);
+      console.error("Upload error:", error);
+    }
   };
 
   const handleTagsInputChange = (e) => {
@@ -121,6 +146,7 @@ export default function LearningMaterials() {
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || e.dataTransfer.files);
+    console.log("Selected files:", files);
     const validExtensions = ["pdf", "png", "jpeg", "jpg", "mp4"];
     const invalidFiles = files.filter(
       (file) =>
