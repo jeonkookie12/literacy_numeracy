@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import subjectIcon from "../../assets/admin/subject.svg";
 import dateIcon from "../../assets/admin/date.svg";
 import languageIcon from "../../assets/admin/language.svg";
@@ -22,8 +22,20 @@ export default function LearningMaterials() {
   const [tagsError, setTagsError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
+  const [resources, setResources] = useState([]);
 
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetch("http://localhost/literacynumeracy/admin/fetch_resources.php")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setResources(data.resources);
+        }
+      })
+      .catch((err) => console.error("Fetch error:", err));
+  }, []);
 
   const handleUploadClick = () => setIsModalOpen(true);
 
@@ -56,36 +68,36 @@ export default function LearningMaterials() {
     setTagsError("");
   };
 
- const handleUpload = async () => {
-  let valid = true;
+  const handleUpload = async () => {
+    let valid = true;
 
-  if (!resourceTitle.trim()) {
-    setTitleError("Title is required.");
-    valid = false;
-  } else {
-    setTitleError("");
-  }
+    if (!resourceTitle.trim()) {
+      setTitleError("Title is required.");
+      valid = false;
+    } else {
+      setTitleError("");
+    }
 
-  if (tags.length === 0) {
-    setTagsError("At least one tag is required.");
-    valid = false;
-  } else {
-    setTagsError("");
-  }
+    if (tags.length === 0) {
+      setTagsError("At least one tag is required.");
+      valid = false;
+    } else {
+      setTagsError("");
+    }
 
-  if (selectedFiles.length === 0) {
-    setErrorMessage("At least one file is required.");
-    valid = false;
-  } else {
-    setErrorMessage("");
-  }
+    if (selectedFiles.length === 0) {
+      setErrorMessage("At least one file is required.");
+      valid = false;
+    } else {
+      setErrorMessage("");
+    }
 
-  if (!valid) return;
+    if (!valid) return;
 
-  setIsUploadModalOpen(true);
-  setUploadError("");
+    setIsUploadModalOpen(true);
+    setUploadError("");
 
-  const formData = new FormData();
+    const formData = new FormData();
     formData.append("resourceTitle", resourceTitle.trim()); 
     formData.append("resourceDescription", resourceDescription.trim());
     formData.append("tags", JSON.stringify(tags)); 
@@ -115,6 +127,15 @@ export default function LearningMaterials() {
           setIsUploadModalOpen(false);
           resetForm();
           setIsModalOpen(false);
+          // Refetch resources after upload
+          fetch("http://localhost/literacynumeracy/admin/fetch_resources.php")
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                setResources(data.resources);
+              }
+            })
+            .catch((err) => console.error("Fetch error:", err));
         }, 2000);
       } else {
         setUploadError(result.message || "Upload failed");
@@ -195,6 +216,46 @@ export default function LearningMaterials() {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
+  const truncateTitle = (title) => {
+    if (title.length <= 20) return title;
+    return `${title.slice(0, 17)}...`;
+  };
+
+  const formatTime = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffHours > 24) {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    } else if (diffHours > 0) {
+      return `${diffHours} ${diffHours === 1 ? "hour" : "hours"} ago`;
+    } else if (diffMins > 0) {
+      return `${diffMins} ${diffMins === 1 ? "minute" : "minutes"} ago`;
+    } else {
+      return "just now";
+    }
+  };
+  window.onbeforeunload = (event) => {
+    if (resourceTitle.trim() || resourceDescription.trim() || tagsInput.trim() || tags.length > 0 || selectedFiles.length > 0) {
+      const confirmationMessage = "You have unsaved changes. Are you sure you want to refresh?";
+      (event || window.event).returnValue = confirmationMessage; 
+      return confirmationMessage; 
+    }
+    return null;
+  };
+
+  const filteredResources = resources.filter((resource) =>
+    resource.title.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen p-10 text-black">
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">
@@ -244,13 +305,15 @@ export default function LearningMaterials() {
       {/* File Cards */}
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {[...Array(6)].map((_, i) => (
+          {filteredResources.map((resource) => (
             <div
-              key={i}
+              key={resource.id}
               className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center"
             >
               <img src={fileIcon} alt="File" className="w-22 h-22 mb-2" />
-              <p className="text-black">Literacy / IV · 4 hours ago</p>
+              <p className="text-black">
+                {truncateTitle(resource.title)} · {formatTime(resource.date_uploaded)}
+              </p>
             </div>
           ))}
         </div>
