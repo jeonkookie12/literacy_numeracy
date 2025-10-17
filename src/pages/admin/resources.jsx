@@ -90,7 +90,7 @@ export default function LearningMaterials() {
   const simulateUpload = () => {
     let progress = 0;
     const interval = setInterval(() => {
-      progress += 10;
+      progress += 25;
       setUploadProgress(progress);
       if (progress >= 100) {
         clearInterval(interval);
@@ -99,7 +99,7 @@ export default function LearningMaterials() {
           window.location.reload();
         }, 2000);
       }
-    }, 500);
+    }, 200);
   };
 
   const handleTagsInputChange = (e) => {
@@ -433,11 +433,12 @@ export default function LearningMaterials() {
                   type="text"
                   value={tagsInput}
                   onChange={handleTagsInputChange}
-                  placeholder="Enter a tag, then press comma"
+                  placeholder="Enter tag"
                   className={`w-full px-5 py-2 border ${
                     tagsError ? "border-red-500" : "border-gray-300"
                   } rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-300`}
                 />
+                <p className="text-gray-500 text-sm mt-1">Enter a comma after each tag</p>
                 {tagsError && (
                   <p className="text-red-500 text-sm mt-1">{tagsError}</p>
                 )}
