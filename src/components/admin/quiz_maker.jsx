@@ -4,35 +4,26 @@ import deleteIcon from "../../assets/admin/delete.svg";
 import upIcon from "../../assets/admin/arrow-up.svg";
 import downIcon from "../../assets/admin/arrow-down.svg";
 import imageIcon from "../../assets/admin/image.svg";
-import multipleChoiceIcon from "../../assets/admin/radio_button.svg"; // For Multiple Choice selector
-import answerIcon from "../../assets/admin/text.svg"; // For Answer selector
-import fileUploadIcon from "../../assets/admin/docu_up.svg"; // For File Upload selector
-import writeIcon from "../../assets/admin/write.svg"; // Placeholder for Write selector
+import multipleChoiceIcon from "../../assets/admin/radio_button.svg";
+import answerIcon from "../../assets/admin/text.svg";
+import fileUploadIcon from "../../assets/admin/docu_up.svg";
+import writeIcon from "../../assets/admin/write.svg";
 
-export default function QuizBuilder({ quizTypeLabel }) {
-  const [activityName, setActivityName] = useState("");
-  const [questions, setQuestions] = useState([]);
-  const [showSelector, setShowSelector] = useState(true);
+export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData }) {
+  const [activityName, setActivityName] = useState(quizData.activityName || "");
+  const [questions, setQuestions] = useState(quizData.questions || []);
+  const [showSelector, setShowSelector] = useState(quizData.questions?.length === 0);
   const [openQuestionSettings, setOpenQuestionSettings] = useState(new Set());
   const [showImageModal, setShowImageModal] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageTarget, setImageTarget] = useState(null); // { qIndex, type: 'question' | 'option', oIndex? }
   const textareaRefs = useRef({});
   const fileInputRef = useRef(null);
   const selectorRef = useRef(null);
 
   useEffect(() => {
-    const savedData = localStorage.getItem('quizBuilderData');
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      setActivityName(parsedData.activityName || "");
-      setQuestions(parsedData.questions || []);
-      setShowSelector(parsedData.questions?.length === 0);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('quizBuilderData', JSON.stringify({ activityName, questions }));
-  }, [activityName, questions]);
+    updateQuizData({ activityName, questions });
+  }, [activityName, questions, updateQuizData]);
 
   useEffect(() => {
     if (showSelector && selectorRef.current && questions.length > 0) {
@@ -68,33 +59,52 @@ export default function QuizBuilder({ quizTypeLabel }) {
     });
   };
 
-  const openImageModal = (qIndex) => {
-    setShowImageModal(`${qIndex}`);
+  const openImageModal = (qIndex, type, oIndex) => {
+    setShowImageModal(`${qIndex}-${type}${oIndex !== undefined ? `-${oIndex}` : ''}`);
+    setImageTarget({ qIndex, type, oIndex });
     setIsUploading(false);
   };
 
   const closeImageModal = () => {
     setShowImageModal(null);
+    setImageTarget(null);
     setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = null;
   };
 
-  const handleImageSelect = () => {
-    setIsUploading(true);
-    setTimeout(() => {
-      closeImageModal();
-    }, 2000);
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setQuestions((prev) => {
+          const newQuestions = [...prev];
+          if (imageTarget.type === 'question') {
+            newQuestions[imageTarget.qIndex].image = reader.result;
+          } else if (imageTarget.type === 'option' && imageTarget.oIndex !== undefined) {
+            newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].image = reader.result;
+          }
+          return newQuestions;
+        });
+        setTimeout(() => {
+          closeImageModal();
+        }, 1000);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleAddQuestion = (type) => {
     let newQuestion = {};
     if (type === "Multiple Choice") {
-      newQuestion = { type, text: "", options: [{ text: "" }], correctIndex: null, points: "" };
+      newQuestion = { type, text: "", options: [{ text: "" }], correctIndex: null, points: "", image: null };
     } else if (type === "Answer") {
-      newQuestion = { type, text: "", expectedAnswer: "", points: "" };
+      newQuestion = { type, text: "", expectedAnswer: "", points: "", image: null };
     } else if (type === "File Upload") {
-      newQuestion = { type, text: "", points: "" };
+      newQuestion = { type, text: "", points: "", image: null };
     } else if (type === "Write") {
-      newQuestion = { type, text: "", points: "" };
+      newQuestion = { type, text: "", points: "", image: null };
     }
     setQuestions([...questions, newQuestion]);
     setShowSelector(false);
@@ -129,7 +139,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
     const newQuestions = [...questions];
     const question = newQuestions[qIndex];
     if (question.type !== "Multiple Choice") return;
-    question.options.push({ text: "" });
+    question.options.push({ text: "", image: null });
     setQuestions(newQuestions);
   };
 
@@ -175,6 +185,12 @@ export default function QuizBuilder({ quizTypeLabel }) {
   const handleCorrectIndexChange = (qIndex, oIndex) => {
     const newQuestions = [...questions];
     newQuestions[qIndex].correctIndex = oIndex;
+    setQuestions(newQuestions);
+  };
+
+  const handleClearExpectedAnswer = (qIndex) => {
+    const newQuestions = [...questions];
+    newQuestions[qIndex].expectedAnswer = "";
     setQuestions(newQuestions);
   };
 
@@ -230,13 +246,16 @@ export default function QuizBuilder({ quizTypeLabel }) {
                     onInput={(e) => autoResize(e.target)}
                   />
                   <button
-                    onClick={() => openImageModal(qIndex)}
+                    onClick={() => openImageModal(qIndex, 'question')}
                     className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
                     <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
+                {question.image && (
+                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs" />
+                )}
 
                 {question.options.map((option, oIndex) => (
                   <div key={oIndex} className="group flex items-center gap-2 mb-2">
@@ -252,7 +271,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
                         onInput={(e) => autoResize(e.target)}
                       />
                       <button
-                        onClick={() => openImageModal(qIndex)}
+                        onClick={() => openImageModal(qIndex, 'option', oIndex)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
                         title="Add Image"
                       >
@@ -266,6 +285,9 @@ export default function QuizBuilder({ quizTypeLabel }) {
                       >
                         ✕
                       </button>
+                    )}
+                    {option.image && (
+                      <img src={option.image} alt={`Option ${oIndex + 1} image`} className="mt-2 max-w-[100px]" />
                     )}
                   </div>
                 ))}
@@ -295,6 +317,9 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   <strong>Question:</strong>{" "}
                   <span className="inline-block">{question.text || "No question text entered"}</span>
                 </p>
+                {question.image && (
+                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs mb-4" />
+                )}
 
                 <div className="mb-4">
                   {question.options.map((option, oIndex) => (
@@ -318,6 +343,9 @@ export default function QuizBuilder({ quizTypeLabel }) {
                           rows="1"
                           onInput={(e) => autoResize(e.target)}
                         />
+                        {option.image && (
+                          <img src={option.image} alt={`Option ${oIndex + 1} image`} className="mt-2 max-w-[100px]" />
+                        )}
                       </label>
                     </div>
                   ))}
@@ -399,13 +427,16 @@ export default function QuizBuilder({ quizTypeLabel }) {
                     onInput={(e) => autoResize(e.target)}
                   />
                   <button
-                    onClick={() => openImageModal(qIndex)}
+                    onClick={() => openImageModal(qIndex, 'question')}
                     className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
                     <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
+                {question.image && (
+                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs" />
+                )}
 
                 <label className="block text-sm text-gray-500 mb-1">
                   Expected Answer (optional)
@@ -421,7 +452,7 @@ export default function QuizBuilder({ quizTypeLabel }) {
                     onInput={(e) => autoResize(e.target)}
                   />
                   <button
-                    onClick={() => openImageModal(qIndex)}
+                    onClick={() => openImageModal(qIndex, 'question')}
                     className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
                     title="Add Image"
                   >
@@ -453,6 +484,9 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   <strong>Question:</strong>{" "}
                   <span className="inline-block">{question.text || "No question text entered"}</span>
                 </p>
+                {question.image && (
+                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs mb-4" />
+                )}
 
                 <div className="mb-4">
                   <label className="block text-sm text-gray-500 mb-1">Correct Answer</label>
@@ -551,13 +585,16 @@ export default function QuizBuilder({ quizTypeLabel }) {
                     onInput={(e) => autoResize(e.target)}
                   />
                   <button
-                    onClick={() => openImageModal(qIndex)}
+                    onClick={() => openImageModal(qIndex, 'question')}
                     className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
                     <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
+                {question.image && (
+                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs" />
+                )}
 
                 <hr className="mt-4 border-gray-300" />
 
@@ -577,6 +614,9 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   <strong>Question:</strong>{" "}
                   <span className="inline-block">{question.text || "No question text entered"}</span>
                 </p>
+                {question.image && (
+                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs mb-4" />
+                )}
 
                 <div className="mb-4">
                   <label className="block text-sm text-gray-500 mb-1">Points</label>
@@ -654,13 +694,16 @@ export default function QuizBuilder({ quizTypeLabel }) {
                     onInput={(e) => autoResize(e.target)}
                   />
                   <button
-                    onClick={() => openImageModal(qIndex)}
+                    onClick={() => openImageModal(qIndex, 'question')}
                     className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
                     <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
+                {question.image && (
+                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs" />
+                )}
 
                 <hr className="mt-4 border-gray-300" />
 
@@ -680,6 +723,9 @@ export default function QuizBuilder({ quizTypeLabel }) {
                   <strong>Question:</strong>{" "}
                   <span className="inline-block">{question.text || "No question text entered"}</span>
                 </p>
+                {question.image && (
+                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs mb-4" />
+                )}
 
                 <div className="mb-4">
                   <label className="block text-sm text-gray-500 mb-1">Points</label>

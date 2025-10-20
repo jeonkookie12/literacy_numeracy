@@ -13,17 +13,20 @@ export default function ActivityResources() {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [activityTitle, setActivityTitle] = useState("");
-  const [selectedActivities, setSelectedActivities] = useState([]);
+  const [formData, setFormData] = useState({
+    details: {
+      activityTitle: "",
+      selectedTags: [],
+      selectedActivities: [],
+    },
+    activities: {}, // Store quiz data for each activity type
+  });
   const [errorMessage, setErrorMessage] = useState("");
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
-  const [selectedTags, setSelectedTags] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [tagOptions] = useState(["Science", "Math", "English", "History"]);
-  const [activityContent, setActivityContent] = useState({});
-  const [completedSteps, setCompletedSteps] = useState([]); 
-  const [fieldErrors, setFieldErrors] = useState({}); 
-  const [checked, setChecked] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState([]);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const filteredTags = tagOptions.filter((tag) =>
     tag.toLowerCase().includes(searchTerm.toLowerCase())
@@ -37,10 +40,14 @@ export default function ActivityResources() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentPage(1);
-    setActivityTitle("");
-    setSelectedActivities([]);
-    setSelectedTags([]);
-    setActivityContent({});
+    setFormData({
+      details: {
+        activityTitle: "",
+        selectedTags: [],
+        selectedActivities: [],
+      },
+      activities: {},
+    });
     setErrorMessage("");
     setCompletedSteps([]);
     setFieldErrors({});
@@ -48,14 +55,18 @@ export default function ActivityResources() {
 
   const handleNext = () => {
     const totalPages =
-      selectedActivities.length > 0 ? 2 + selectedActivities.length : 2;
+      formData.details.selectedActivities.length > 0
+        ? 2 + formData.details.selectedActivities.length
+        : 2;
 
     // Validation for page 1
     if (currentPage === 1) {
       const newErrors = {};
-      if (!activityTitle.trim()) newErrors.title = "Activity Title is required.";
-      if (selectedTags.length === 0) newErrors.tags = "Please select at least one tag.";
-      if (selectedActivities.length === 0)
+      if (!formData.details.activityTitle.trim())
+        newErrors.title = "Activity Title is required.";
+      if (formData.details.selectedTags.length === 0)
+        newErrors.tags = "Please select at least one tag.";
+      if (formData.details.selectedActivities.length === 0)
         newErrors.activities = "Please select at least one activity type.";
 
       setFieldErrors(newErrors);
@@ -84,35 +95,55 @@ export default function ActivityResources() {
   };
 
   const handleCreateActivity = () => {
-    console.log({
-      title: activityTitle,
-      activities: selectedActivities,
-      tags: selectedTags,
-      content: activityContent,
-    });
+    console.log(formData);
     handleCloseModal();
   };
 
   const toggleTag = (tag) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+    setFormData((prev) => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        selectedTags: prev.details.selectedTags.includes(tag)
+          ? prev.details.selectedTags.filter((t) => t !== tag)
+          : [...prev.details.selectedTags, tag],
+      },
+    }));
   };
 
   const toggleSelectAllTags = () => {
-    if (selectedTags.length === filteredTags.length) {
-      setSelectedTags([]);
-    } else {
-      setSelectedTags(filteredTags);
-    }
+    setFormData((prev) => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        selectedTags:
+          prev.details.selectedTags.length === filteredTags.length
+            ? []
+            : [...filteredTags],
+      },
+    }));
   };
 
   const toggleActivity = (activity) => {
-    setSelectedActivities((prev) =>
-      prev.includes(activity)
-        ? prev.filter((a) => a !== activity)
-        : [...prev, activity]
-    );
+    setFormData((prev) => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        selectedActivities: prev.details.selectedActivities.includes(activity)
+          ? prev.details.selectedActivities.filter((a) => a !== activity)
+          : [...prev.details.selectedActivities, activity],
+      },
+    }));
+  };
+
+  const updateActivityContent = (activityType, content) => {
+    setFormData((prev) => ({
+      ...prev,
+      activities: {
+        ...prev.activities,
+        [activityType]: content,
+      },
+    }));
   };
 
   return (
@@ -135,7 +166,7 @@ export default function ActivityResources() {
             <img src={searchIcon} alt="Search" className="w-5 h-5" />
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button className="flex items-center gap-2 bg-blue-300 px Mait-4 py-2 rounded-xl shadow text-sm">
+            <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
               <img src={subjectIcon} alt="Subject" className="w-6 h-6" /> Subject
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
@@ -183,7 +214,7 @@ export default function ActivityResources() {
               <h3 className="text-lg font-semibold text-gray-800 max-w-[80%] truncate">
                 {currentPage === 1
                   ? "Create Activity"
-                  : activityTitle || "Activity/Test"}
+                  : formData.details.activityTitle || "Activity/Test"}
               </h3>
               <button
                 onClick={handleCloseModal}
@@ -211,10 +242,10 @@ export default function ActivityResources() {
               <div className="flex justify-between relative">
                 {(() => {
                   const steps = ["Details"];
-                  if (selectedActivities.length === 0) {
+                  if (formData.details.selectedActivities.length === 0) {
                     steps.push("..");
                   } else {
-                    steps.push(...selectedActivities, "Preview");
+                    steps.push(...formData.details.selectedActivities, "Preview");
                   }
 
                   return steps.map((label, index) => {
@@ -277,9 +308,14 @@ export default function ActivityResources() {
                       </label>
                       <input
                         type="text"
-                        value={activityTitle}
-                        onChange={(e) => setActivityTitle(e.target.value)}
-                        placeholders="Add a title that describes your activity"
+                        value={formData.details.activityTitle}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            details: { ...prev.details, activityTitle: e.target.value },
+                          }))
+                        }
+                        placeholder="Add a title that describes your activity"
                         className={`w-full px-5 py-2 border rounded-xl text-base text-gray-700 focus:outline-none ${
                           fieldErrors.title
                             ? "border-red-500"
@@ -303,7 +339,7 @@ export default function ActivityResources() {
                           <input
                             type="checkbox"
                             value={type}
-                            checked={selectedActivities.includes(type)}
+                            checked={formData.details.selectedActivities.includes(type)}
                             onChange={() => toggleActivity(type)}
                             className="mr-2 accent-blue-500"
                           />
@@ -329,8 +365,8 @@ export default function ActivityResources() {
                             fieldErrors.tags ? "border-red-500" : "border-gray-300"
                           }`}
                         >
-                          {selectedTags.length > 0 ? (
-                            selectedTags.map((tag) => (
+                          {formData.details.selectedTags.length > 0 ? (
+                            formData.details.selectedTags.map((tag) => (
                               <span
                                 key={tag}
                                 className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
@@ -365,7 +401,7 @@ export default function ActivityResources() {
                                 >
                                   <input
                                     type="checkbox"
-                                    checked={selectedTags.includes(tag)}
+                                    checked={formData.details.selectedTags.includes(tag)}
                                     readOnly
                                     className="mr-2 accent-blue-500"
                                   />
@@ -384,25 +420,91 @@ export default function ActivityResources() {
                 )}
 
                 {/* QUIZ BUILDER FOR EACH ACTIVITY TYPE */}
-                {selectedActivities.map((type, index) => {
+                {formData.details.selectedActivities.map((type, index) => {
                   const pageNumber = 2 + index;
                   if (currentPage !== pageNumber) return null;
 
                   return (
                     <div key={type} className="flex flex-col gap-4">
                       <h2 className="text-lg font-semibold text-gray-800 mb-2">{type}</h2>
-                      <QuizBuilder quizTypeLabel={type} />
+                      <QuizBuilder
+                        quizTypeLabel={type}
+                        quizData={formData.activities[type] || { activityName: "", questions: [] }}
+                        updateQuizData={(content) => updateActivityContent(type, content)}
+                      />
                     </div>
                   );
                 })}
 
                 {/* PREVIEW PAGE */}
-                {currentPage === 2 + selectedActivities.length && (
+                {currentPage === 2 + formData.details.selectedActivities.length && (
                   <div className="flex flex-col gap-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">Preview</h2>
                     <p className="text-sm text-gray-500">
-                      Review your quiz before publishing.
+                      Review your activity before publishing.
                     </p>
+                    <div className="border border-gray-300 rounded-xl p-4 bg-white">
+                      <h3 className="text-base font-semibold mb-2">Details</h3>
+                      <p><strong>Title:</strong> {formData.details.activityTitle || "N/A"}</p>
+                      <p><strong>Tags:</strong> {formData.details.selectedTags.join(", ") || "None"}</p>
+                      <p><strong>Activities:</strong> {formData.details.selectedActivities.join(", ") || "None"}</p>
+                    </div>
+                    {formData.details.selectedActivities.map((type) => (
+                      <div key={type} className="border border-gray-300 rounded-xl p-4 bg-white mt-4">
+                        <h3 className="text-base font-semibold mb-2">{type}</h3>
+                        <p><strong>Name:</strong> {formData.activities[type]?.activityName || "N/A"}</p>
+                        <div className="mt-2">
+                          <strong>Questions:</strong>
+                          {formData.activities[type]?.questions?.length > 0 ? (
+                            <ul className="list-disc pl-5">
+                              {formData.activities[type].questions.map((q, idx) => (
+                                <li key={idx} className="mt-2">
+                                  <p><strong>Question {idx + 1} ({q.type}):</strong> {q.text}</p>
+                                  {q.image && (
+                                    <img
+                                      src={q.image}
+                                      alt="Question image"
+                                      className="mt-2 max-w-xs"
+                                    />
+                                  )}
+                                  {q.type === "Multiple Choice" && (
+                                    <div>
+                                      <p><strong>Options:</strong></p>
+                                      <ul className="list-circle pl-5">
+                                        {q.options.map((opt, oIdx) => (
+                                          <li key={oIdx}>
+                                            {opt.text} {q.correctIndex === oIdx ? "(Correct)" : ""}
+                                            {opt.image && (
+                                              <img
+                                                src={opt.image}
+                                                alt={`Option ${oIdx + 1} image`}
+                                                className="mt-1 max-w-[100px]"
+                                              />
+                                            )}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                      <p><strong>Points:</strong> {q.points}</p>
+                                    </div>
+                                  )}
+                                  {q.type === "Answer" && (
+                                    <div>
+                                      <p><strong>Expected Answer:</strong> {q.expectedAnswer}</p>
+                                      <p><strong>Points:</strong> {q.points}</p>
+                                    </div>
+                                  )}
+                                  {(q.type === "File Upload" || q.type === "Write") && (
+                                    <p><strong>Points:</strong> {q.points}</p>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>No questions added.</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -419,12 +521,11 @@ export default function ActivityResources() {
                     Back
                   </button>
                 )}
-
                 <button
                   onClick={
                     currentPage ===
-                    (selectedActivities.length > 0
-                      ? 2 + selectedActivities.length
+                    (formData.details.selectedActivities.length > 0
+                      ? 2 + formData.details.selectedActivities.length
                       : 2)
                       ? handleCreateActivity
                       : handleNext
@@ -432,8 +533,8 @@ export default function ActivityResources() {
                   className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
                 >
                   {currentPage ===
-                  (selectedActivities.length > 0
-                    ? 2 + selectedActivities.length
+                  (formData.details.selectedActivities.length > 0
+                    ? 2 + formData.details.selectedActivities.length
                     : 2)
                     ? "Publish"
                     : "Next"}
