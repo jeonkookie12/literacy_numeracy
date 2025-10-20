@@ -25,6 +25,7 @@ export default function LearningMaterials() {
   const [uploadError, setUploadError] = useState("");
   const [resources, setResources] = useState([]);
   const [selectedResource, setSelectedResource] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -44,6 +45,19 @@ export default function LearningMaterials() {
       })
       .catch((err) => console.error("Fetch error:", err));
   }, []);
+
+  // Handle ESC key for closing preview
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape" && previewFile) {
+        setPreviewFile(null);
+      } else if (e.key === "Escape" && isViewModalOpen) {
+        setIsViewModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [previewFile, isViewModalOpen]);
 
   const handleUploadClick = () => setIsModalOpen(true);
 
@@ -106,9 +120,9 @@ export default function LearningMaterials() {
     setUploadError("");
 
     const formData = new FormData();
-    formData.append("resourceTitle", resourceTitle.trim()); 
+    formData.append("resourceTitle", resourceTitle.trim());
     formData.append("resourceDescription", resourceDescription.trim());
-    formData.append("tags", JSON.stringify(tags)); 
+    formData.append("tags", JSON.stringify(tags));
 
     selectedFiles.forEach((file, index) => {
       formData.append(`files[${index}]`, file);
@@ -248,12 +262,12 @@ export default function LearningMaterials() {
       return "just now";
     }
   };
-  
+
   window.onbeforeunload = (event) => {
     if (resourceTitle.trim() || resourceDescription.trim() || tagsInput.trim() || tags.length > 0 || selectedFiles.length > 0) {
       const confirmationMessage = "You have unsaved changes. Are you sure you want to refresh?";
-      (event || window.event).returnValue = confirmationMessage; 
-      return confirmationMessage; 
+      (event || window.event).returnValue = confirmationMessage;
+      return confirmationMessage;
     }
     return null;
   };
@@ -288,13 +302,13 @@ export default function LearningMaterials() {
   };
 
   const renderFilePreview = (filePath, fileType) => {
-    const url = `${filePath}`; // Adjust based on your server path
+    const url = `${filePath}`;
     if (fileType === "pdf") {
-      return <embed src={url} type="application/pdf" width="100%" height="400px" />;
+      return <embed src={url} type="application/pdf" width="100%" height="100%" />;
     } else if (fileType === "mp4") {
-      return <video controls width="100%" height="400px"><source src={url} type="video/mp4" /></video>;
+      return <video controls width="100%" height="100%"><source src={url} type="video/mp4" /></video>;
     } else if (["png", "jpeg", "jpg"].includes(fileType)) {
-      return <img src={url} alt="Preview" width="100%" height="400px" />;
+      return <img src={url} alt="Preview" className="w-full h-full object-contain" />;
     }
     return <p>Preview not available</p>;
   };
@@ -407,7 +421,7 @@ export default function LearningMaterials() {
                   <h4 className="text-lg font-medium text-gray-800">
                     Drag and drop your files here or select files
                   </h4>
-                  <p className="text-gray-500 text-sm">Supported files: pdf, png, jpeg, jpg, mp4. </p>
+                  <p className="text-gray-500 text-sm">Supported files: pdf, png, jpeg, jpg, mp4.</p>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -698,9 +712,9 @@ export default function LearningMaterials() {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[15px]">
               <h4 className="text-lg font-medium text-gray-800">Resources</h4>
               {selectedResource.description ? (
-                <p className="text-gray-600 whitespace-pre-line break-words">{selectedResource.description}</p>
+                <p className="text-black whitespace-pre-line break-words">{selectedResource.description}</p>
               ) : (
-                <p className="text-gray-600 italic">no description added</p>
+                <p className="text-black italic">no description added</p>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {selectedResource.files && selectedResource.files.map((file, index) => {
@@ -729,7 +743,7 @@ export default function LearningMaterials() {
                     <div
                       key={index}
                       className="cursor-pointer group"
-                      onClick={() => window.open(file.file_path, "_blank")}
+                      onClick={() => setPreviewFile(file)}
                     >
                       {thumb}
                       <p className="text-sm text-gray-700 mt-2 text-center truncate group-hover:underline">
@@ -738,6 +752,23 @@ export default function LearningMaterials() {
                     </div>
                   );
                 })}
+              </div>
+              <div>
+                <h4 className="text-lg font-medium text-gray-800 mb-2">Tags</h4>
+                {selectedResource.tags && selectedResource.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedResource.tags.map((tag) => (
+                      <div
+                        key={tag}
+                        className="flex items-center bg-blue-100 rounded-full px-3 py-2 text-sm text-blue-800 break-words max-w-full"
+                      >
+                        <span className="break-all">{tag}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-black italic">No tags added</p>
+                )}
               </div>
             </div>
             <hr className="border-gray-300" />
@@ -749,6 +780,38 @@ export default function LearningMaterials() {
               </button>
             </div>
           </div>
+
+          {/* Preview Overlay */}
+          {previewFile && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-60">
+              <div className="bg-white rounded-xl w-full max-w-5xl h-[80vh] flex flex-col">
+                <div className="flex justify-between items-center p-4 border-b border-gray-300">
+                  <span className="text-sm text-gray-700 truncate">{previewFile.file_name}</span>
+                  <button
+                    onClick={() => setPreviewFile(null)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex-1 p-4 overflow-auto">
+                  {renderFilePreview(previewFile.file_path, previewFile.file_type)}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
