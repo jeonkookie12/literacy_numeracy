@@ -12,6 +12,7 @@ export default function LearningMaterials() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [resourceTitle, setResourceTitle] = useState("");
   const [resourceDescription, setResourceDescription] = useState("");
   const [tagsInput, setTagsInput] = useState("");
@@ -23,15 +24,22 @@ export default function LearningMaterials() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
   const [resources, setResources] = useState([]);
+  const [selectedResource, setSelectedResource] = useState(null);
 
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetch("http://localhost/literacynumeracy/admin/fetch_resources.php")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
+        console.log("Fetched resources:", data);
         if (data.success) {
-          setResources(data.resources);
+          setResources(data.resources || []);
+        } else {
+          console.error("Fetch failed:", data.message);
         }
       })
       .catch((err) => console.error("Fetch error:", err));
@@ -102,12 +110,10 @@ export default function LearningMaterials() {
     formData.append("resourceDescription", resourceDescription.trim());
     formData.append("tags", JSON.stringify(tags)); 
 
-    // Append each file with array notation to prevent overwriting
     selectedFiles.forEach((file, index) => {
-      formData.append(`files[${index}]`, file); // Use files[0], files[1], etc.
+      formData.append(`files[${index}]`, file);
     });
 
-    // Debug FormData contents
     for (let pair of formData.entries()) {
       console.log("FormData key-value:", pair[0], pair[1]);
     }
@@ -120,14 +126,13 @@ export default function LearningMaterials() {
       });
 
       const result = await response.json();
-      console.log("Response:", result);
+      console.log("Upload response:", result);
 
       if (result.success) {
         setTimeout(() => {
           setIsUploadModalOpen(false);
           resetForm();
           setIsModalOpen(false);
-          // Refetch resources after upload
           fetch("http://localhost/literacynumeracy/admin/fetch_resources.php")
             .then((res) => res.json())
             .then((data) => {
@@ -257,6 +262,43 @@ export default function LearningMaterials() {
     resource.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleViewResource = (resource) => {
+    if (!resource || !resource.id) {
+      console.error("Invalid resource or ID:", resource);
+      return;
+    }
+    console.log("Viewing resource ID:", resource.id);
+    setSelectedResource(resource);
+    setIsViewModalOpen(true);
+
+    fetch(`http://localhost/literacynumeracy/admin/fetch_resources.php?id=${parseInt(resource.id, 10)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        console.log("View resource data:", data);
+        if (data.success) {
+          setSelectedResource(data.resource);
+        } else {
+          console.error("View fetch failed:", data.message);
+        }
+      })
+      .catch((err) => console.error("View fetch error:", err));
+  };
+
+  const renderFilePreview = (filePath, fileType) => {
+    const url = `${filePath}`; // Adjust based on your server path
+    if (fileType === "pdf") {
+      return <embed src={url} type="application/pdf" width="100%" height="400px" />;
+    } else if (fileType === "mp4") {
+      return <video controls width="100%" height="400px"><source src={url} type="video/mp4" /></video>;
+    } else if (["png", "jpeg", "jpg"].includes(fileType)) {
+      return <img src={url} alt="Preview" width="100%" height="400px" />;
+    }
+    return <p>Preview not available</p>;
+  };
+
   return (
     <div className="min-h-screen p-10 text-black">
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">
@@ -309,7 +351,8 @@ export default function LearningMaterials() {
           {filteredResources.map((resource) => (
             <div
               key={resource.id}
-              className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center"
+              className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center cursor-pointer"
+              onClick={() => handleViewResource(resource)}
             >
               <img src={fileIcon} alt="File" className="w-22 h-22 mb-2" />
               <p className="text-black">
@@ -324,7 +367,6 @@ export default function LearningMaterials() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl w-full max-w-2xl h-[90vh] flex flex-col">
-            {/* Header */}
             <div className="flex justify-between items-center p-6 pb-4">
               <h3 className="text-xl font-semibold text-gray-800">
                 Upload Resources
@@ -349,15 +391,12 @@ export default function LearningMaterials() {
               </button>
             </div>
             <hr className="border-gray-300" />
-
-            {/* Scrollable Body */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[15px]">
               {errorMessage && (
                 <div className="bg-red-100 text-red-700 px-4 py-2 rounded">
                   {errorMessage}
                 </div>
               )}
-              {/* File Upload */}
               {!selectedFiles.length ? (
                 <div
                   className="flex flex-col items-center gap-4 border-2 border-dashed border-gray-300 p-6 rounded-xl"
@@ -446,7 +485,6 @@ export default function LearningMaterials() {
                 </div>
               )}
 
-              {/* Title */}
               <div>
                 <label className="block text-red-500 text-sm mb-1">
                   Title (required) <span className="text-gray-500">ⓘ</span>
@@ -472,7 +510,6 @@ export default function LearningMaterials() {
                 )}
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-red-500 text-sm mb-1">
                   Description <span className="text-gray-500">ⓘ</span>
@@ -486,7 +523,6 @@ export default function LearningMaterials() {
                 />
               </div>
 
-              {/* Tags */}
               <div>
                 <label className="block text-red-500 text-sm mb-1">
                   Tags (required) <span className="text-gray-500">ⓘ</span>
@@ -534,8 +570,6 @@ export default function LearningMaterials() {
                 )}
               </div>
             </div>
-
-            {/* Footer */}
             <hr className="border-gray-300" />
             <div className="flex justify-end gap-3 p-6 pt-4">
               <button
@@ -629,6 +663,91 @@ export default function LearningMaterials() {
                 {uploadError}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* View Resource Modal */}
+      {isViewModalOpen && selectedResource && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-2xl h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 pb-4">
+              <h3 className="text-xl font-semibold text-gray-800">
+                {selectedResource.title}
+              </h3>
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <hr className="border-gray-300" />
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[15px]">
+              <h4 className="text-lg font-medium text-gray-800">Resources</h4>
+              {selectedResource.description ? (
+                <p className="text-gray-600 whitespace-pre-line break-words">{selectedResource.description}</p>
+              ) : (
+                <p className="text-gray-600 italic">no description added</p>
+              )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {selectedResource.files && selectedResource.files.map((file, index) => {
+                  const isImage = ["png", "jpeg", "jpg"].includes(file.file_type);
+                  const isVideo = file.file_type === "mp4";
+                  const isPDF = file.file_type === "pdf";
+
+                  let thumb;
+                  if (isImage) {
+                    thumb = <img src={file.file_path} alt={file.file_name} className="w-full h-32 object-cover rounded-lg" />;
+                  } else if (isVideo) {
+                    thumb = (
+                      <video className="w-full h-32 object-cover rounded-lg" muted>
+                        <source src={file.file_path} type="video/mp4" />
+                      </video>
+                    );
+                  } else if (isPDF) {
+                    thumb = (
+                      <div className="w-full h-32 bg-gray-200 flex items-center justify-center rounded-lg">
+                        <img src={fileIcon} alt="PDF" className="w-10 h-10" />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={index}
+                      className="cursor-pointer group"
+                      onClick={() => window.open(file.file_path, "_blank")}
+                    >
+                      {thumb}
+                      <p className="text-sm text-gray-700 mt-2 text-center truncate group-hover:underline">
+                        {file.file_name}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <hr className="border-gray-300" />
+            <div className="flex justify-end gap-3 p-6 pt-4">
+              <button
+                className="px-5 py-2 bg-blue-300 rounded-xl text-sm text-white hover:bg-blue-400"
+              >
+                Edit
+              </button>
+            </div>
           </div>
         </div>
       )}
