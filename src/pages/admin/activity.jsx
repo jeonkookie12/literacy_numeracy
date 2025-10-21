@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { CheckIcon } from "@heroicons/react/24/outline";
 import subjectIcon from "../../assets/admin/subject.svg";
 import dateIcon from "../../assets/admin/date.svg";
@@ -16,21 +16,43 @@ export default function ActivityResources() {
   const [formData, setFormData] = useState({
     details: {
       activityTitle: "",
-      selectedTags: [],
+      selectedTags: [], // Stores tag IDs (e.g., [1, 2])
       selectedActivities: [],
     },
-    activities: {}, 
+    activities: {},
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [tagOptions] = useState(["Science", "Math", "English", "History"]);
+  const [tagOptions, setTagOptions] = useState([]); // Array of {id, name}
   const [completedSteps, setCompletedSteps] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
 
-  const filteredTags = tagOptions.filter((tag) =>
-    tag.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Fetch tags on mount
+  useEffect(() => {
+    let isMounted = true;
+    console.log('Fetching tags...');
+    fetch('http://localhost/literacynumeracy/admin/get_tags.php')
+      .then(response => response.json())
+      .then(data => {
+        if (isMounted && data.success) {
+          console.log('Tags fetched:', data.tags);
+          setTagOptions(data.tags); // Expects [{id, name}, ...]
+        }
+      })
+      .catch(error => console.error('Error fetching tags:', error));
+    return () => {
+      isMounted = false;
+      console.log('ActivityResources unmounted');
+    };
+  }, []);
+
+  // Memoize filteredTags to prevent recomputation
+  const filteredTags = useMemo(() => {
+    return tagOptions.filter((tag) =>
+      tag.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [tagOptions, searchTerm]);
 
   const handleUploadClick = () => {
     setIsModalOpen(true);
@@ -59,7 +81,6 @@ export default function ActivityResources() {
         ? 2 + formData.details.selectedActivities.length
         : 2;
 
-    // Validation for page 1
     if (currentPage === 1) {
       const newErrors = {};
       if (!formData.details.activityTitle.trim())
@@ -68,9 +89,7 @@ export default function ActivityResources() {
         newErrors.tags = "Please select at least one tag.";
       if (formData.details.selectedActivities.length === 0)
         newErrors.activities = "Please select at least one activity type.";
-
       setFieldErrors(newErrors);
-
       if (Object.keys(newErrors).length > 0) return;
     }
 
@@ -95,18 +114,34 @@ export default function ActivityResources() {
   };
 
   const handleCreateActivity = () => {
-    console.log(formData);
-    handleCloseModal();
+    fetch('http://localhost/literacynumeracy/admin/create_activity.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          console.log('Activity created:', data);
+          handleCloseModal();
+        } else {
+          setErrorMessage(data.message || 'Failed to create activity');
+        }
+      })
+      .catch(error => {
+        console.error('Error creating activity:', error);
+        setErrorMessage('An error occurred while creating the activity');
+      });
   };
 
-  const toggleTag = (tag) => {
+  const toggleTag = (tagId) => {
     setFormData((prev) => ({
       ...prev,
       details: {
         ...prev.details,
-        selectedTags: prev.details.selectedTags.includes(tag)
-          ? prev.details.selectedTags.filter((t) => t !== tag)
-          : [...prev.details.selectedTags, tag],
+        selectedTags: prev.details.selectedTags.includes(tagId)
+          ? prev.details.selectedTags.filter((t) => t !== tagId)
+          : [...prev.details.selectedTags, tagId],
       },
     }));
   };
@@ -119,7 +154,7 @@ export default function ActivityResources() {
         selectedTags:
           prev.details.selectedTags.length === filteredTags.length
             ? []
-            : [...filteredTags],
+            : filteredTags.map(tag => tag.id),
       },
     }));
   };
@@ -148,7 +183,6 @@ export default function ActivityResources() {
 
   return (
     <div className="min-h-screen p-10 text-black">
-      {/* MAIN CONTENT */}
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">
         Manage Activity Resources
       </h2>
@@ -190,7 +224,6 @@ export default function ActivityResources() {
         </div>
       </div>
 
-      {/* FILES */}
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -205,11 +238,9 @@ export default function ActivityResources() {
         </div>
       </div>
 
-      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl w-full max-w-3xl p-6 relative flex flex-col h-[95vh]">
-            {/* HEADER */}
             <div className="flex justify-between items-center mb-1">
               <h3 className="text-lg font-semibold text-gray-800 max-w-[80%] truncate">
                 {currentPage === 1
@@ -237,7 +268,6 @@ export default function ActivityResources() {
             </div>
             <hr className="border-gray-300 mb-4" />
 
-            {/* PROGRESS BAR */}
             <div className="w-full max-w-2xl mx-auto mb-6">
               <div className="flex justify-between relative">
                 {(() => {
@@ -294,14 +324,11 @@ export default function ActivityResources() {
               </div>
             </div>
 
-            {/* BODY */}
             <div className="flex-1 overflow-y-auto mt-2 flex flex-col pb-10 px-4">
               <div className="w-full max-w-3xl mx-auto">
-                {/* DETAILS PAGE */}
                 {currentPage === 1 && (
                   <div className="flex flex-col gap-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">Details</h2>
-                    {/* ACTIVITY TITLE */}
                     <div className="w-full">
                       <label className="block text-gray-800 text-base mb-1">
                         Activity Title <span className="text-red-500">*</span>
@@ -329,7 +356,6 @@ export default function ActivityResources() {
                       )}
                     </div>
 
-                    {/* SELECT ACTIVITY */}
                     <div className="w-full">
                       <label className="block text-gray-800 text-base mb-1">
                         Select Activity <span className="text-red-500">*</span>
@@ -353,7 +379,6 @@ export default function ActivityResources() {
                       )}
                     </div>
 
-                    {/* TAGS */}
                     <div className="w-full">
                       <label className="block text-gray-800 text-base mb-1">
                         Tags <span className="text-red-500">*</span>
@@ -366,14 +391,17 @@ export default function ActivityResources() {
                           }`}
                         >
                           {formData.details.selectedTags.length > 0 ? (
-                            formData.details.selectedTags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
-                              >
-                                {tag}
-                              </span>
-                            ))
+                            formData.details.selectedTags.map((tagId) => {
+                              const tag = tagOptions.find(t => t.id === tagId);
+                              return (
+                                <span
+                                  key={tagId}
+                                  className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
+                                >
+                                  {tag ? tag.name : 'Unknown'}
+                                </span>
+                              );
+                            })
                           ) : (
                             <span className="text-gray-400 text-sm">
                               Select tags...
@@ -388,6 +416,7 @@ export default function ActivityResources() {
                               <input
                                 type="text"
                                 placeholder="Search..."
+                                value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full px-3 py-1 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none"
                               />
@@ -395,17 +424,17 @@ export default function ActivityResources() {
                             <div className="max-h-40 overflow-y-auto">
                               {filteredTags.map((tag) => (
                                 <div
-                                  key={tag}
-                                  onClick={() => toggleTag(tag)}
+                                  key={tag.id}
+                                  onClick={() => toggleTag(tag.id)}
                                   className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                 >
                                   <input
                                     type="checkbox"
-                                    checked={formData.details.selectedTags.includes(tag)}
+                                    checked={formData.details.selectedTags.includes(tag.id)}
                                     readOnly
                                     className="mr-2 accent-blue-500"
                                   />
-                                  <span className="text-sm">{tag}</span>
+                                  <span className="text-sm">{tag.name}</span>
                                 </div>
                               ))}
                             </div>
@@ -419,7 +448,6 @@ export default function ActivityResources() {
                   </div>
                 )}
 
-                {/* QUIZ BUILDER FOR EACH ACTIVITY TYPE */}
                 {formData.details.selectedActivities.map((type, index) => {
                   const pageNumber = 2 + index;
                   if (currentPage !== pageNumber) return null;
@@ -436,7 +464,6 @@ export default function ActivityResources() {
                   );
                 })}
 
-                {/* PREVIEW PAGE */}
                 {currentPage === 2 + formData.details.selectedActivities.length && (
                   <div className="flex flex-col gap-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">Preview</h2>
@@ -446,7 +473,12 @@ export default function ActivityResources() {
                     <div className="border border-gray-300 rounded-xl p-4 bg-white">
                       <h3 className="text-base font-semibold mb-2">Details</h3>
                       <p><strong>Title:</strong> {formData.details.activityTitle || "N/A"}</p>
-                      <p><strong>Tags:</strong> {formData.details.selectedTags.join(", ") || "None"}</p>
+                      <p>
+                        <strong>Tags:</strong>{" "}
+                        {formData.details.selectedTags
+                          .map(tagId => tagOptions.find(t => t.id === tagId)?.name || 'Unknown')
+                          .join(", ") || "None"}
+                      </p>
                       <p><strong>Activities:</strong> {formData.details.selectedActivities.join(", ") || "None"}</p>
                     </div>
                     {formData.details.selectedActivities.map((type) => (
@@ -510,7 +542,6 @@ export default function ActivityResources() {
               </div>
             </div>
 
-            {/* FOOTER */}
             <div className="mt-auto bg-white border-t border-gray-300 p-2">
               <div className="flex justify-end gap-3 max-w-3xl mx-auto">
                 {currentPage > 1 && (
