@@ -16,7 +16,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   const [openQuestionSettings, setOpenQuestionSettings] = useState(new Set());
   const [showImageModal, setShowImageModal] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [imageTarget, setImageTarget] = useState(null); // { qIndex, type: 'question' | 'option', oIndex? }
+  const [imageTarget, setImageTarget] = useState(null); 
   const textareaRefs = useRef({});
   const fileInputRef = useRef(null);
   const selectorRef = useRef(null);

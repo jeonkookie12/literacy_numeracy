@@ -19,7 +19,7 @@ export default function ActivityResources() {
       selectedTags: [],
       selectedActivities: [],
     },
-    activities: {}, // Store quiz data for each activity type
+    activities: {}, 
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
