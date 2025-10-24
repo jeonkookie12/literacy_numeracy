@@ -71,9 +71,13 @@ export default function LearningMaterials() {
           setResources(normalizedResources || []);
         } else {
           console.error("Fetch failed:", data.message);
+          setErrorMessage("Failed to load resources. Please try again.");
         }
       })
-      .catch((err) => console.error("Fetch error:", err));
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        setErrorMessage("An error occurred while loading resources. Please try again.");
+      });
   }, []);
 
   useEffect(() => {
@@ -89,7 +93,6 @@ export default function LearningMaterials() {
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [previewFile, isViewModalOpen, isEditModalOpen]);
-
 
   const handleUploadClick = () => setIsModalOpen(true);
 
@@ -188,18 +191,25 @@ export default function LearningMaterials() {
                   })),
                 }));
                 setResources(normalizedResources);
+              } else {
+                console.error("Fetch failed:", data.message);
+                setErrorMessage("Failed to refresh resources. Please try again.");
               }
             })
-            .catch((err) => console.error("Fetch error:", err));
+            .catch((err) => {
+              console.error("Fetch error:", err);
+              setErrorMessage("An error occurred while refreshing resources. Please try again.");
+            });
         }, 2000);
       } else {
-        setUploadError(result.message || "Upload failed");
+        console.error("Upload failed:", result.message, result.debug || "");
+        setUploadError(result.message || "Failed to upload resources. Please try again.");
         setTimeout(() => setIsUploadModalOpen(false), 2000);
       }
     } catch (error) {
-      setUploadError("An error occurred during upload");
-      setTimeout(() => setIsUploadModalOpen(false), 2000);
       console.error("Upload error:", error);
+      setUploadError("An error occurred during upload. Please try again.");
+      setTimeout(() => setIsUploadModalOpen(false), 2000);
     }
   };
 
@@ -323,6 +333,7 @@ export default function LearningMaterials() {
   const handleViewResource = (resource) => {
     if (!resource || !resource.id) {
       console.error("Invalid resource or ID:", resource);
+      setErrorMessage("Invalid resource. Please try again.");
       return;
     }
     console.log("Viewing resource ID:", resource.id);
@@ -347,9 +358,13 @@ export default function LearningMaterials() {
           setSelectedResource(normalizedResource);
         } else {
           console.error("View fetch failed:", data.message);
+          setErrorMessage("Failed to load resource details. Please try again.");
         }
       })
-      .catch((err) => console.error("View fetch error:", err));
+      .catch((err) => {
+        console.error("View fetch error:", err);
+        setErrorMessage("An error occurred while loading resource details. Please try again.");
+      });
   };
 
   const handleOpenInNewTab = (file) => {
@@ -450,118 +465,119 @@ export default function LearningMaterials() {
   const handleEditFileChange = (e) => {
     const files = Array.from(e.target.files || e.dataTransfer.files);
     const validExtensions = ["pdf", "png", "jpeg", "jpg", "mp4"];
-
     const invalidFiles = files.filter(
-        (file) =>
-            !validExtensions.some((ext) =>
-                file.name.toLowerCase().endsWith(`.${ext}`)
-            )
+      (file) =>
+        !validExtensions.some((ext) =>
+          file.name.toLowerCase().endsWith(`.${ext}`)
+        )
     );
 
     if (invalidFiles.length > 0) {
-        setErrorMessage(
-            `Invalid files: ${invalidFiles.map(f => f.name).join(", ")}. Only .pdf, .png, .jpeg, .jpg, .mp4 files are allowed.`
-        );
-        return;
+      setErrorMessage(
+        `Invalid files: ${invalidFiles.map((f) => f.name).join(", ")}. Only .pdf, .png, .jpeg, .jpg, .mp4 files are allowed.`
+      );
+      return;
     }
 
-      setErrorMessage("");
-      setEditFiles([...editFiles, ...files]);
+    setErrorMessage("");
+    setEditFiles([...editFiles, ...files]);
   };
 
   const handleEditFileRemove = (index) => {
     setEditFiles(editFiles.filter((_, i) => i !== index));
   };
 
- const handleEditSubmit = async () => {
-      let valid = true;
+  const handleEditSubmit = async () => {
+    let valid = true;
 
-      if (!resourceTitle.trim()) {
-          setTitleError("Title is required.");
-          valid = false;
+    if (!resourceTitle.trim()) {
+      setTitleError("Title is required.");
+      valid = false;
+    } else {
+      setTitleError("");
+    }
+
+    if (editTags.length === 0) {
+      setTagsError("At least one tag is required.");
+      valid = false;
+    } else {
+      setTagsError("");
+    }
+
+    if (editFiles.length === 0) {
+      setErrorMessage("At least one file is required.");
+      valid = false;
+    } else {
+      setErrorMessage("");
+    }
+
+    if (!valid) return;
+
+    setIsUploadModalOpen(true);
+    setUploadError("");
+
+    const formData = new FormData();
+    formData.append("resourceId", editResource.id);
+    formData.append("resourceTitle", resourceTitle.trim());
+    formData.append("resourceDescription", resourceDescription.trim());
+    formData.append("tags", JSON.stringify(editTags));
+
+    editFiles.forEach((file, index) => {
+      if (file.file_path) {
+        const filePath = normalizeFilePath(file.file_path).replace(/^learning_resources\//, '');
+        formData.append(`existingFiles[${index}]`, filePath);
       } else {
-          setTitleError("");
+        formData.append(`newFiles[${index}]`, file);
       }
+    });
 
-      if (editTags.length === 0) {
-          setTagsError("At least one tag is required.");
-          valid = false;
-      } else {
-          setTagsError("");
-      }
-
-      if (editFiles.length === 0) {
-          setErrorMessage("At least one file is required.");
-          valid = false;
-      } else {
-          setErrorMessage("");
-      }
-
-      if (!valid) return;
-
-      setIsUploadModalOpen(true);
-      setUploadError("");
-
-      const formData = new FormData();
-      formData.append("resourceId", editResource.id);
-      formData.append("resourceTitle", resourceTitle.trim());
-      formData.append("resourceDescription", resourceDescription.trim());
-      formData.append("tags", JSON.stringify(editTags));
-
-      editFiles.forEach((file, index) => {
-          if (file.file_path) {
-              const filePath = normalizeFilePath(file.file_path).replace(/^learning_resources\//, '');
-              formData.append(`existingFiles[${index}]`, filePath);
-          } else {
-              formData.append(`newFiles[${index}]`, file);
-          }
+    try {
+      const response = await fetch("http://localhost/literacynumeracy/admin/update_resources.php", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
       });
 
-      // Debug FormData
-      for (let [key, value] of formData.entries()) {
-          console.log(`${key}: ${value}`);
+      const result = await response.json();
+      console.log("Edit response:", result);
+
+      if (result.success) {
+        setTimeout(() => {
+          setIsUploadModalOpen(false);
+          resetEditForm();
+          setIsEditModalOpen(false);
+          fetch("http://localhost/literacynumeracy/admin/fetch_resources.php")
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                const normalizedResources = data.resources.map((resource) => ({
+                  ...resource,
+                  files: resource.files.map((file) => ({
+                    ...file,
+                    file_path: normalizeFilePath(file.file_path),
+                  })),
+                }));
+                setResources(normalizedResources);
+              } else {
+                console.error("Fetch failed:", data.message);
+                setErrorMessage("Failed to refresh resources. Please try again.");
+              }
+            })
+            .catch((err) => {
+              console.error("Fetch error:", err);
+              setErrorMessage("An error occurred while refreshing resources. Please try again.");
+            });
+        }, 2000);
+      } else {
+        console.error("Update failed:", result.message, result.debug || "");
+        setUploadError(result.message || "Failed to update resource. Please try again.");
+        setTimeout(() => setIsUploadModalOpen(false), 2000);
       }
-
-      try {
-          const response = await fetch("http://localhost/literacynumeracy/admin/update_resources.php", {
-              method: "POST",
-              credentials: "include",
-              body: formData,
-          });
-
-          const result = await response.json();
-          console.log("Edit response:", result);
-
-          if (result.success) {
-              setTimeout(() => {
-                  setIsUploadModalOpen(false);
-                  resetEditForm();
-                  setIsEditModalOpen(false);
-                  fetch("http://localhost/literacynumeracy/admin/fetch_resources.php")
-                      .then((res) => res.json())
-                      .then((data) => {
-                          if (data.success) {
-                              const normalizedResources = data.resources.map((resource) => ({
-                                  ...resource,
-                                  files: resource.files.map((file) => ({
-                                      ...file,
-                                      file_path: normalizeFilePath(file.file_path),
-                                  })),
-                              }));
-                              setResources(normalizedResources);
-                          }
-                      })
-                      .catch((err) => console.error("Fetch error:", err));
-              }, 2000);
-          } else {
-              setUploadError(result.message || "Update failed");
-              setTimeout(() => setIsUploadModalOpen(false), 2000);
-          }
-      } catch (error) {
-          setUploadError("An error occurred during update");
-          setTimeout(() => setIsUploadModalOpen(false), 2000);
-          console.error("Update error:", error);
-      }
+    } catch (error) {
+      console.error("Update error:", error);
+      setUploadError("An error occurred during update. Please try again.");
+      setTimeout(() => setIsUploadModalOpen(false), 2000);
+    }
   };
 
   const handleDownloadResource = async (resource) => {
@@ -572,7 +588,6 @@ export default function LearningMaterials() {
     }
 
     try {
-      // Fetch resource details to ensure we have the latest file data
       const response = await fetch(`http://localhost/literacynumeracy/admin/fetch_resources.php?id=${resource.id}`, {
         method: "GET",
         credentials: "include",
@@ -595,7 +610,6 @@ export default function LearningMaterials() {
       }));
 
       if (files.length === 1) {
-        // Single file download
         const file = files[0];
         const fileResponse = await fetch(`http://localhost/literacynumeracy/admin/fetch_file.php?file_path=${encodeURIComponent(file.file_path)}&download=true`, {
           method: "GET",
@@ -616,7 +630,6 @@ export default function LearningMaterials() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else if (files.length > 1) {
-        // Multiple files: create a ZIP
         if (!window.JSZip) {
           console.error("JSZip is not loaded.");
           setErrorMessage("JSZip library is not loaded. Please try again later.");
@@ -672,6 +685,13 @@ export default function LearningMaterials() {
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">
         Manage Materials
       </h2>
+
+      {/* Error Message Display */}
+      {errorMessage && (
+        <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-6">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">

@@ -7,6 +7,7 @@ import uploadIcon from "../../assets/admin/upload.svg";
 import fileIcon from "../../assets/admin/file.svg";
 import dropdownIcon from "../../assets/admin/dropdown.svg";
 import searchIcon from "../../assets/admin/search.svg";
+import moreOptionsIcon from "../../assets/admin/more_options_vertical.svg";
 import QuizBuilder from "../../components/admin/quiz_maker";
 
 export default function ActivityResources() {
@@ -16,7 +17,7 @@ export default function ActivityResources() {
   const [formData, setFormData] = useState({
     details: {
       activityTitle: "",
-      selectedTags: [], // Stores tag IDs (e.g., [1, 2])
+      selectedTags: [],
       selectedActivities: [],
     },
     activities: {},
@@ -24,11 +25,11 @@ export default function ActivityResources() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [tagOptions, setTagOptions] = useState([]); // Array of {id, name}
+  const [tagOptions, setTagOptions] = useState([]);
   const [completedSteps, setCompletedSteps] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [openDropdownId, setOpenDropdownId] = useState(null);
 
-  // Fetch tags on mount
   useEffect(() => {
     let isMounted = true;
     console.log('Fetching tags...');
@@ -37,7 +38,7 @@ export default function ActivityResources() {
       .then(data => {
         if (isMounted && data.success) {
           console.log('Tags fetched:', data.tags);
-          setTagOptions(data.tags); // Expects [{id, name}, ...]
+          setTagOptions(data.tags);
         }
       })
       .catch(error => console.error('Error fetching tags:', error));
@@ -47,7 +48,6 @@ export default function ActivityResources() {
     };
   }, []);
 
-  // Memoize filteredTags to prevent recomputation
   const filteredTags = useMemo(() => {
     return tagOptions.filter((tag) =>
       tag.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -224,15 +224,78 @@ export default function ActivityResources() {
         </div>
       </div>
 
+      {/* File Cards */}
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center"
+              className="relative bg-white rounded-xl shadow p-4 flex flex-col text-xs h-38 cursor-pointer transition-colors duration-200 hover:bg-gray-100"
+              onClick={(e) => {
+                if (!e.target.closest('.more-options')) {
+                  // Placeholder for view action
+                  console.log(`View activity ${i + 1}`);
+                }
+              }}
             >
-              <img src={fileIcon} alt="File" className="w-22 h-22 mb-2" />
-              <p className="text-black">Activity / IV · 4 hours ago</p>
+              <div className="flex-1 flex justify-center items-center">
+                <img src={fileIcon} alt="File" className="w-22 h-22" />
+              </div>
+              <div className="flex justify-between items-end w-full mt-2">
+                <div className="text-left">
+                  <p className="text-black font-medium">Activity {i + 1}</p>
+                  <p className="text-gray-500">4 hours ago</p>
+                </div>
+                <div className="more-options">
+                  <button
+                    type="button"
+                    aria-label="Open more options"
+                    className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenDropdownId(openDropdownId === i ? null : i);
+                    }}
+                  >
+                    <img src={moreOptionsIcon} alt="More Options" className="w-5 h-5" />
+                  </button>
+                  {openDropdownId === i && (
+                    <div className="absolute right-0 bottom-10 mt-1 w-32 bg-white rounded-lg shadow-lg z-20">
+                      <button
+                        type="button"
+                        aria-label={`Edit activity ${i + 1}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Placeholder for edit action
+                          console.log(`Edit activity ${i + 1}`);
+                          setOpenDropdownId(null);
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 focus:outline-none"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete activity ${i + 1}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Placeholder for delete action
+                          console.log(`Delete activity ${i + 1}`);
+                          setOpenDropdownId(null);
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 focus:outline-none"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>
