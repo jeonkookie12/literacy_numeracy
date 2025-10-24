@@ -6,6 +6,10 @@ import uploadIcon from "../../assets/admin/upload.svg";
 import fileIcon from "../../assets/admin/file.svg";
 import dropdownIcon from "../../assets/admin/dropdown.svg";
 import searchIcon from "../../assets/admin/search.svg";
+import moreOptionsIcon from "../../assets/admin/more_options_vertical.svg";
+import openInNewTabIcon from "../../assets/admin/open-in-new-tab.svg";
+import editIcon from "../../assets/admin/edit.svg";
+import downloadIcon from "../../assets/admin/download.svg";
 
 export default function LearningMaterials() {
   const [search, setSearch] = useState("");
@@ -26,6 +30,7 @@ export default function LearningMaterials() {
   const [resources, setResources] = useState([]);
   const [selectedResource, setSelectedResource] = useState(null);
   const [previewFile, setPreviewFile] = useState(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null); 
 
   const fileInputRef = useRef(null);
 
@@ -301,6 +306,10 @@ export default function LearningMaterials() {
       .catch((err) => console.error("View fetch error:", err));
   };
 
+  const handleOpenInNewTab = (file) => {
+    window.open(file.file_path, "_blank");
+  };
+
   const renderFilePreview = (filePath, fileType) => {
     const url = `${filePath}`;
     if (fileType === "pdf") {
@@ -341,6 +350,7 @@ export default function LearningMaterials() {
             <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
               <img src={dateIcon} alt="Date" className="w-6 h-6" /> Date Uploaded
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
+
             </button>
             <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
               <img src={languageIcon} alt="Language" className="w-6 h-6" /> Language
@@ -365,13 +375,40 @@ export default function LearningMaterials() {
           {filteredResources.map((resource) => (
             <div
               key={resource.id}
-              className="bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center cursor-pointer"
-              onClick={() => handleViewResource(resource)}
+              className="relative bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center cursor-pointer transition-colors duration-200 hover:bg-gray-100"
+              onClick={(e) => {
+                if (!e.target.closest('.more-options')) {
+                  handleViewResource(resource);
+                }
+              }}
             >
               <img src={fileIcon} alt="File" className="w-22 h-22 mb-2" />
               <p className="text-black">
                 {truncateTitle(resource.title)} · {formatTime(resource.date_uploaded)}
               </p>
+              <div className="absolute bottom-2 right-2 more-options">
+                <button
+                  className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenDropdownId(openDropdownId === resource.id ? null : resource.id);
+                  }}
+                >
+                  <img src={moreOptionsIcon} alt="More Options" className="w-5 h-5" />
+                </button>
+                {openDropdownId === resource.id && (
+                  <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg z-10">
+                    <button className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
+                      <img src={editIcon} alt="Edit" className="w-4 h-4" />
+                      Edit
+                    </button>
+                    <button className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50">
+                      <img src={downloadIcon} alt="Download" className="w-4 h-4" />
+                      Download
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -587,12 +624,6 @@ export default function LearningMaterials() {
             <hr className="border-gray-300" />
             <div className="flex justify-end gap-3 p-6 pt-4">
               <button
-                onClick={handleCloseModal}
-                className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
                 onClick={handleUpload}
                 className="px-5 py-2 bg-blue-300 rounded-xl text-sm text-white hover:bg-blue-400"
               >
@@ -710,12 +741,30 @@ export default function LearningMaterials() {
             </div>
             <hr className="border-gray-300" />
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[15px]">
-              <h4 className="text-lg font-medium text-gray-800">Resources</h4>
+              <h4 className="text-lg font-medium text-gray-800">Description</h4>
               {selectedResource.description ? (
                 <p className="text-black whitespace-pre-line break-words">{selectedResource.description}</p>
               ) : (
-                <p className="text-black italic">no description added</p>
+                <p className="text-black italic">No description added</p>
               )}
+              <div>
+                <h4 className="text-lg font-medium text-gray-800 mb-2">Tags</h4>
+                {selectedResource.tags && selectedResource.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedResource.tags.map((tag) => (
+                      <div
+                        key={tag}
+                        className="flex items-center bg-blue-100 rounded-full px-3 py-2 text-sm text-blue-800 break-words max-w-full"
+                      >
+                        <span className="break-all">{tag}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-black italic">No tags added</p>
+                )}
+              </div>
+              <h4 className="text-lg font-medium text-gray-800">Resources</h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {selectedResource.files && selectedResource.files.map((file, index) => {
                   const isImage = ["png", "jpeg", "jpg"].includes(file.file_type);
@@ -753,23 +802,6 @@ export default function LearningMaterials() {
                   );
                 })}
               </div>
-              <div>
-                <h4 className="text-lg font-medium text-gray-800 mb-2">Tags</h4>
-                {selectedResource.tags && selectedResource.tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedResource.tags.map((tag) => (
-                      <div
-                        key={tag}
-                        className="flex items-center bg-blue-100 rounded-full px-3 py-2 text-sm text-blue-800 break-words max-w-full"
-                      >
-                        <span className="break-all">{tag}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-black italic">No tags added</p>
-                )}
-              </div>
             </div>
             <hr className="border-gray-300" />
             <div className="flex justify-end gap-3 p-6 pt-4">
@@ -787,24 +819,33 @@ export default function LearningMaterials() {
               <div className="bg-white rounded-xl w-full max-w-5xl h-[80vh] flex flex-col">
                 <div className="flex justify-between items-center p-4 border-b border-gray-300">
                   <span className="text-sm text-gray-700 truncate">{previewFile.file_name}</span>
-                  <button
-                    onClick={() => setPreviewFile(null)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => handleOpenInNewTab(previewFile)}
+                      className="flex items-center gap-1 text-gray-700 hover:text-gray-900 hover:bg-gray-200 rounded-full px-2 py-1 transition-colors duration-200"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                      <img src={openInNewTabIcon} alt="Open in new tab" className="w-5 h-5" />
+                      Open in new tab
+                    </button>
+                    <button
+                      onClick={() => setPreviewFile(null)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <div className="flex-1 p-4 overflow-auto">
                   {renderFilePreview(previewFile.file_path, previewFile.file_type)}
