@@ -43,15 +43,13 @@ export default function LearningMaterials() {
   const editFileInputRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // Base URL to strip from file_path
   const BASE_URL = "http://localhost/literacynumeracy/";
 
-  // Function to normalize file_path by removing the base URL
   const normalizeFilePath = (filePath) => {
     if (filePath.startsWith(BASE_URL)) {
       return filePath.replace(BASE_URL, "");
     }
-    return filePath; // Return as-is if it's already a relative path
+    return filePath; 
   };
 
   useEffect(() => {
@@ -63,7 +61,6 @@ export default function LearningMaterials() {
       .then((data) => {
         console.log("Fetched resources:", data);
         if (data.success) {
-          // Normalize file paths in resources
           const normalizedResources = data.resources.map((resource) => ({
             ...resource,
             files: resource.files.map((file) => ({
@@ -476,88 +473,93 @@ export default function LearningMaterials() {
   };
 
   const handleEditSubmit = async () => {
-    let valid = true;
+      let valid = true;
 
-    if (!resourceTitle.trim()) {
-      setTitleError("Title is required.");
-      valid = false;
-    } else {
-      setTitleError("");
-    }
-
-    if (editTags.length === 0) {
-      setTagsError("At least one tag is required.");
-      valid = false;
-    } else {
-      setTagsError("");
-    }
-
-    if (editFiles.length === 0) {
-      setErrorMessage("At least one file is required.");
-      valid = false;
-    } else {
-      setErrorMessage("");
-    }
-
-    if (!valid) return;
-
-    setIsUploadModalOpen(true);
-    setUploadError("");
-
-    const formData = new FormData();
-    formData.append("resourceId", editResource.id);
-    formData.append("resourceTitle", resourceTitle.trim());
-    formData.append("resourceDescription", resourceDescription.trim());
-    formData.append("tags", JSON.stringify(editTags));
-
-    editFiles.forEach((file, index) => {
-      if (file.file_path) {
-        formData.append(`existingFiles[${index}]`, normalizeFilePath(file.file_path));
+      if (!resourceTitle.trim()) {
+          setTitleError("Title is required.");
+          valid = false;
       } else {
-        formData.append(`newFiles[${index}]`, file);
+          setTitleError("");
       }
-    });
 
-    try {
-      const response = await fetch("http://localhost/literacynumeracy/admin/update_resources.php", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
+      if (editTags.length === 0) {
+          setTagsError("At least one tag is required.");
+          valid = false;
+      } else {
+          setTagsError("");
+      }
+
+      if (editFiles.length === 0) {
+          setErrorMessage("At least one file is required.");
+          valid = false;
+      } else {
+          setErrorMessage("");
+      }
+
+      if (!valid) return;
+
+      setIsUploadModalOpen(true);
+      setUploadError("");
+
+      const formData = new FormData();
+      formData.append("resourceId", editResource.id);
+      formData.append("resourceTitle", resourceTitle.trim());
+      formData.append("resourceDescription", resourceDescription.trim());
+      formData.append("tags", JSON.stringify(editTags));
+
+      editFiles.forEach((file, index) => {
+          if (file.file_path) {
+              formData.append(`existingFiles[${index}]`, normalizeFilePath(file.file_path));
+          } else {
+              formData.append(`newFiles[${index}]`, file);
+          }
       });
 
-      const result = await response.json();
-      console.log("Edit response:", result);
-
-      if (result.success) {
-        setTimeout(() => {
-          setIsUploadModalOpen(false);
-          resetEditForm();
-          setIsEditModalOpen(false);
-          fetch("http://localhost/literacynumeracy/admin/fetch_resources.php")
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success) {
-                const normalizedResources = data.resources.map((resource) => ({
-                  ...resource,
-                  files: resource.files.map((file) => ({
-                    ...file,
-                    file_path: normalizeFilePath(file.file_path),
-                  })),
-                }));
-                setResources(normalizedResources);
-              }
-            })
-            .catch((err) => console.error("Fetch error:", err));
-        }, 2000);
-      } else {
-        setUploadError(result.message || "Update failed");
-        setTimeout(() => setIsUploadModalOpen(false), 2000);
+      // Debug FormData
+      for (let [key, value] of formData.entries()) {
+          console.log(`${key}: ${value}`);
       }
-    } catch (error) {
-      setUploadError("An error occurred during update");
-      setTimeout(() => setIsUploadModalOpen(false), 2000);
-      console.error("Update error:", error);
-    }
+
+      try {
+          const response = await fetch("http://localhost/literacynumeracy/admin/update_resources.php", {
+              method: "POST",
+              credentials: "include",
+              body: formData,
+          });
+
+          const result = await response.json();
+          console.log("Edit response:", result);
+
+          if (result.success) {
+              setTimeout(() => {
+                  setIsUploadModalOpen(false);
+                  resetEditForm();
+                  setIsEditModalOpen(false);
+                  fetch("http://localhost/literacynumeracy/admin/fetch_resources.php")
+                      .then((res) => res.json())
+                      .then((data) => {
+                          if (data.success) {
+                              const normalizedResources = data.resources.map((resource) => ({
+                                  ...resource,
+                                  files: resource.files.map((file) => ({
+                                      ...file,
+                                      file_path: normalizeFilePath(file.file_path),
+                                  })),
+                              }));
+                              setResources(normalizedResources);
+                          }
+                      })
+                      .catch((err) => console.error("Fetch error:", err));
+              }, 2000);
+          } else {
+              setUploadError(result.message || "Update failed");
+              setTimeout(() => setIsUploadModalOpen(false), 2000);
+          }
+      } catch (error) {
+          setUploadError("An error occurred during update");
+          setTimeout(() => setIsUploadModalOpen(false), 2000);
+          console.error("Update error:", error);
+      }
   };
 
   const handleDownloadResource = async (resource) => {
