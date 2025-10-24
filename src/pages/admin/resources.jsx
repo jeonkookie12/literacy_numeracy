@@ -450,29 +450,30 @@ export default function LearningMaterials() {
   const handleEditFileChange = (e) => {
     const files = Array.from(e.target.files || e.dataTransfer.files);
     const validExtensions = ["pdf", "png", "jpeg", "jpg", "mp4"];
+
     const invalidFiles = files.filter(
-      (file) =>
-        !validExtensions.some((ext) =>
-          file.name.toLowerCase().endsWith(`.${ext}`)
-        )
+        (file) =>
+            !validExtensions.some((ext) =>
+                file.name.toLowerCase().endsWith(`.${ext}`)
+            )
     );
 
     if (invalidFiles.length > 0) {
-      setErrorMessage(
-        "Only .pdf, .png, .jpeg, .jpg, and .mp4 files are allowed."
-      );
-      return;
+        setErrorMessage(
+            `Invalid files: ${invalidFiles.map(f => f.name).join(", ")}. Only .pdf, .png, .jpeg, .jpg, .mp4 files are allowed.`
+        );
+        return;
     }
 
-    setErrorMessage("");
-    setEditFiles([...editFiles, ...files]);
+      setErrorMessage("");
+      setEditFiles([...editFiles, ...files]);
   };
 
   const handleEditFileRemove = (index) => {
     setEditFiles(editFiles.filter((_, i) => i !== index));
   };
 
-  const handleEditSubmit = async () => {
+ const handleEditSubmit = async () => {
       let valid = true;
 
       if (!resourceTitle.trim()) {
@@ -509,7 +510,8 @@ export default function LearningMaterials() {
 
       editFiles.forEach((file, index) => {
           if (file.file_path) {
-              formData.append(`existingFiles[${index}]`, normalizeFilePath(file.file_path));
+              const filePath = normalizeFilePath(file.file_path).replace(/^learning_resources\//, '');
+              formData.append(`existingFiles[${index}]`, filePath);
           } else {
               formData.append(`newFiles[${index}]`, file);
           }
@@ -717,59 +719,68 @@ export default function LearningMaterials() {
           {filteredResources.map((resource) => (
             <div
               key={resource.id}
-              className="relative bg-white rounded-xl shadow p-4 flex flex-col items-center text-center text-xs h-38 justify-center cursor-pointer transition-colors duration-200 hover:bg-gray-100"
+              className="relative bg-white rounded-xl shadow p-4 flex flex-col text-xs h-38 cursor-pointer transition-colors duration-200 hover:bg-gray-100"
               onClick={(e) => {
                 if (!e.target.closest('.more-options')) {
                   handleViewResource(resource);
                 }
               }}
             >
-              <img src={fileIcon} alt="File" className="w-22 h-22 mb-2" />
-              <p className="text-black">
-                {truncateTitle(resource.title)} · {formatTime(resource.date_uploaded)}
-              </p>
-              <div className="absolute bottom-2 right-2 more-options" ref={dropdownRef}>
-                <button
-                  type="button"
-                  aria-label="Open more options"
-                  className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenDropdownId(openDropdownId === resource.id ? null : resource.id);
-                  }}
-                >
-                  <img src={moreOptionsIcon} alt="More Options" className="w-5 h-5" />
-                </button>
-                {openDropdownId === resource.id && (
-                  <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg z-20">
-                    <button
-                      type="button"
-                      aria-label={`Edit resource ${resource.title}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditResource(resource);
-                        setOpenDropdownId(null);
-                      }}
-                      className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 focus:outline-none"
-                    >
-                      <img src={editIcon} alt="Edit" className="w-4 h-4" />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Download resource ${resource.title}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadResource(resource);
-                        setOpenDropdownId(null);
-                      }}
-                      className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 focus:outline-none"
-                    >
-                      <img src={downloadIcon} alt="Download" className="w-4 h-4" />
-                      Download
-                    </button>
-                  </div>
-                )}
+              <div className="flex-1 flex justify-center items-center">
+                <img src={fileIcon} alt="File" className="w-22 h-22" />
+              </div>
+              <div className="flex justify-between items-end w-full mt-2">
+                <div className="text-left">
+                  <p className="text-black font-medium">
+                    {truncateTitle(resource.title)}
+                  </p>
+                  <p className="text-gray-500">
+                    {formatTime(resource.date_uploaded)}
+                  </p>
+                </div>
+                <div className="more-options" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    aria-label="Open more options"
+                    className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenDropdownId(openDropdownId === resource.id ? null : resource.id);
+                    }}
+                  >
+                    <img src={moreOptionsIcon} alt="More Options" className="w-5 h-5" />
+                  </button>
+                  {openDropdownId === resource.id && (
+                    <div className="absolute right-0 bottom-10 mt-1 w-32 bg-white rounded-lg shadow-lg z-20">
+                      <button
+                        type="button"
+                        aria-label={`Edit resource ${resource.title}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditResource(resource);
+                          setOpenDropdownId(null);
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 focus:outline-none"
+                      >
+                        <img src={editIcon} alt="Edit" className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Download resource ${resource.title}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadResource(resource);
+                          setOpenDropdownId(null);
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 focus:outline-none"
+                      >
+                        <img src={downloadIcon} alt="Download" className="w-4 h-4" />
+                        Download
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
