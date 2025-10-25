@@ -16,24 +16,30 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   const [openQuestionSettings, setOpenQuestionSettings] = useState(new Set());
   const [showImageModal, setShowImageModal] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [imageTarget, setImageTarget] = useState(null); 
+  const [imageTarget, setImageTarget] = useState(null);
   const textareaRefs = useRef({});
   const fileInputRef = useRef(null);
   const selectorRef = useRef(null);
 
   useEffect(() => {
-    updateQuizData({ activityName, questions });
-  }, [activityName, questions, updateQuizData]);
-
-  useEffect(() => {
     if (showSelector && selectorRef.current && questions.length > 0) {
       selectorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [showSelector]);
+  }, [showSelector, questions.length]);
 
-  const clearLocalStorage = () => {
-    localStorage.removeItem('quizBuilderData');
-  };
+  useEffect(() => {
+    const hasChanged =
+      activityName !== (quizData.activityName || "") ||
+      JSON.stringify(questions) !== JSON.stringify(quizData.questions || []);
+
+    if (hasChanged) {
+      updateQuizData({ activityName, questions });
+    }
+  }, [activityName, questions]);
+
+  useEffect(() => {
+    Object.values(textareaRefs.current).forEach(autoResize);
+  }, [questions]);
 
   const autoResize = (element) => {
     if (element) {
@@ -41,10 +47,6 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
       element.style.height = `${element.scrollHeight}px`;
     }
   };
-
-  useEffect(() => {
-    Object.values(textareaRefs.current).forEach(autoResize);
-  }, [questions]);
 
   const toggleSettings = (qIndex) => {
     const key = `${qIndex}`;
@@ -96,15 +98,15 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   };
 
   const handleAddQuestion = (type) => {
-    let newQuestion = {};
+    let newQuestion = { orderIndex: questions.length };
     if (type === "Multiple Choice") {
-      newQuestion = { type, text: "", options: [{ text: "" }], correctIndex: null, points: "", image: null };
+      newQuestion = { ...newQuestion, type, text: "", options: [{ text: "" }], correctIndex: null, points: "" };
     } else if (type === "Answer") {
-      newQuestion = { type, text: "", expectedAnswer: "", points: "", image: null };
+      newQuestion = { ...newQuestion, type, text: "", expectedAnswer: "", points: "" };
     } else if (type === "File Upload") {
-      newQuestion = { type, text: "", points: "", image: null };
+      newQuestion = { ...newQuestion, type, text: "", points: "" };
     } else if (type === "Write") {
-      newQuestion = { type, text: "", points: "", image: null };
+      newQuestion = { ...newQuestion, type, text: "", points: "" };
     }
     setQuestions([...questions, newQuestion]);
     setShowSelector(false);
@@ -113,6 +115,10 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   const handleCopyQuestion = (qIndex) => {
     const newQuestions = [...questions];
     const copied = JSON.parse(JSON.stringify(newQuestions[qIndex]));
+    copied.orderIndex = qIndex + 1;
+    newQuestions.forEach((q, i) => {
+      if (i >= qIndex + 1) q.orderIndex += 1;
+    });
     newQuestions.splice(qIndex + 1, 0, copied);
     setQuestions(newQuestions);
   };
@@ -120,6 +126,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   const handleDeleteQuestion = (qIndex) => {
     const newQuestions = [...questions];
     newQuestions.splice(qIndex, 1);
+    newQuestions.forEach((q, i) => {
+      q.orderIndex = i;
+    });
     setQuestions(newQuestions);
     if (newQuestions.length === 0) {
       setShowSelector(true);
@@ -130,8 +139,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     const newQuestions = [...questions];
     const newIndex = qIndex + direction;
     if (newIndex < 0 || newIndex >= newQuestions.length) return;
-    const [moved] = newQuestions.splice(qIndex, 1);
-    newQuestions.splice(newIndex, 0, moved);
+    [newQuestions[qIndex], newQuestions[newIndex]] = [newQuestions[newIndex], newQuestions[qIndex]];
+    newQuestions[qIndex].orderIndex = qIndex;
+    newQuestions[newIndex].orderIndex = newIndex;
     setQuestions(newQuestions);
   };
 
@@ -139,7 +149,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     const newQuestions = [...questions];
     const question = newQuestions[qIndex];
     if (question.type !== "Multiple Choice") return;
-    question.options.push({ text: "", image: null });
+    question.options.push({ text: "" });
     setQuestions(newQuestions);
   };
 
@@ -148,6 +158,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     const question = newQuestions[qIndex];
     if (question.type !== "Multiple Choice") return;
     question.options.splice(oIndex, 1);
+    if (question.correctIndex >= oIndex) {
+      question.correctIndex = question.options.length > 0 ? 0 : null;
+    }
     setQuestions(newQuestions);
   };
 

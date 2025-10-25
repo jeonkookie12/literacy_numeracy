@@ -33,7 +33,9 @@ export default function ActivityResources() {
   useEffect(() => {
     let isMounted = true;
     console.log('Fetching tags...');
-    fetch('http://localhost/literacynumeracy/admin/get_tags.php')
+    fetch('http://localhost/literacynumeracy/admin/get_tags.php', {
+      credentials: 'include',
+    })
       .then(response => response.json())
       .then(data => {
         if (isMounted && data.success) {
@@ -117,6 +119,7 @@ export default function ActivityResources() {
     fetch('http://localhost/literacynumeracy/admin/create_activity.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', 
       body: JSON.stringify(formData),
     })
       .then(response => response.json())
@@ -233,7 +236,6 @@ export default function ActivityResources() {
               className="relative bg-white rounded-xl shadow p-4 flex flex-col text-xs h-38 cursor-pointer transition-colors duration-200 hover:bg-gray-100"
               onClick={(e) => {
                 if (!e.target.closest('.more-options')) {
-                  // Placeholder for view action
                   console.log(`View activity ${i + 1}`);
                 }
               }}
@@ -265,7 +267,6 @@ export default function ActivityResources() {
                         aria-label={`Edit activity ${i + 1}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Placeholder for edit action
                           console.log(`Edit activity ${i + 1}`);
                           setOpenDropdownId(null);
                         }}
@@ -281,7 +282,6 @@ export default function ActivityResources() {
                         aria-label={`Delete activity ${i + 1}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Placeholder for delete action
                           console.log(`Delete activity ${i + 1}`);
                           setOpenDropdownId(null);
                         }}
