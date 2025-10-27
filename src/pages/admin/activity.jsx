@@ -21,6 +21,7 @@ export default function ActivityResources() {
       selectedActivities: [],
     },
     activities: {},
+    validation: {},
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
@@ -29,6 +30,7 @@ export default function ActivityResources() {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [triggerValidation, setTriggerValidation] = useState({}); // Map to trigger validation per activity type
 
   useEffect(() => {
     let isMounted = true;
@@ -59,6 +61,7 @@ export default function ActivityResources() {
   const handleUploadClick = () => {
     setIsModalOpen(true);
     setCurrentPage(1);
+    setTriggerValidation({});
   };
 
   const handleCloseModal = () => {
@@ -71,10 +74,12 @@ export default function ActivityResources() {
         selectedActivities: [],
       },
       activities: {},
+      validation: {},
     });
     setErrorMessage("");
     setCompletedSteps([]);
     setFieldErrors({});
+    setTriggerValidation({});
   };
 
   const handleNext = () => {
@@ -92,7 +97,21 @@ export default function ActivityResources() {
       if (formData.details.selectedActivities.length === 0)
         newErrors.activities = "Please select at least one activity type.";
       setFieldErrors(newErrors);
-      if (Object.keys(newErrors).length > 0) return;
+      if (Object.keys(newErrors).length > 0) {
+        setErrorMessage("Please complete all required fields on this step.");
+        return;
+      }
+    }
+
+    // Trigger validation for the current activity
+    if (currentPage > 1 && currentPage <= formData.details.selectedActivities.length + 1) {
+      const activityType = formData.details.selectedActivities[currentPage - 2];
+      setTriggerValidation((prev) => ({ ...prev, [activityType]: true }));
+      const isValid = formData.validation[activityType]?.isValid;
+      if (!isValid) {
+        setErrorMessage(`Please complete all required fields for ${activityType}.`);
+        return;
+      }
     }
 
     if (currentPage < totalPages) {
@@ -100,6 +119,11 @@ export default function ActivityResources() {
         prev.includes(currentPage) ? prev : [...prev, currentPage]
       );
       setCurrentPage(currentPage + 1);
+      setTriggerValidation((prev) => {
+        const newTriggers = { ...prev };
+        delete newTriggers[formData.details.selectedActivities[currentPage - 2]];
+        return newTriggers;
+      });
     }
     setErrorMessage("");
   };
@@ -113,13 +137,35 @@ export default function ActivityResources() {
       return prev - 1;
     });
     setErrorMessage("");
+    setTriggerValidation((prev) => {
+      const newTriggers = { ...prev };
+      delete newTriggers[formData.details.selectedActivities[currentPage - 2]];
+      return newTriggers;
+    });
   };
 
   const handleCreateActivity = () => {
+    // Trigger validation for all activities
+    setTriggerValidation((prev) => {
+      const newTriggers = {};
+      formData.details.selectedActivities.forEach((type) => {
+        newTriggers[type] = true;
+      });
+      return newTriggers;
+    });
+
+    const allValid = formData.details.selectedActivities.every(
+      (type) => formData.validation[type]?.isValid
+    );
+    if (!allValid) {
+      setErrorMessage("Please complete all required fields for all activities before publishing.");
+      return;
+    }
+
     fetch('http://localhost/literacynumeracy/admin/create_activity.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', 
+      credentials: 'include',
       body: JSON.stringify(formData),
     })
       .then(response => response.json())
@@ -184,6 +230,16 @@ export default function ActivityResources() {
     }));
   };
 
+  const handleActivityValidation = (activityType, isValid, errors) => {
+    setFormData((prev) => ({
+      ...prev,
+      validation: {
+        ...prev.validation,
+        [activityType]: { isValid, errors },
+      },
+    }));
+  };
+
   return (
     <div className="min-h-screen p-10 text-black">
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">
@@ -227,7 +283,6 @@ export default function ActivityResources() {
         </div>
       </div>
 
-      {/* File Cards */}
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -303,9 +358,9 @@ export default function ActivityResources() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-3xl p-6 relative flex flex-col h-[95vh]">
-            <div className="flex justify-between items-center mb-1">
-              <h3 className="text-lg font-semibold text-gray-800 max-w-[80%] truncate">
+          <div className="bg-white rounded-xl w-full max-w-2xl h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 pb-4">
+              <h3 className="text-xl font-semibold text-gray-800 max-w-[80%] truncate">
                 {currentPage === 1
                   ? "Create Activity"
                   : formData.details.activityTitle || "Activity/Test"}
@@ -329,65 +384,69 @@ export default function ActivityResources() {
                 </svg>
               </button>
             </div>
-            <hr className="border-gray-300 mb-4" />
+            <hr className="border-gray-300" />
 
-            <div className="w-full max-w-2xl mx-auto mb-6">
-              <div className="flex justify-between relative">
-                {(() => {
-                  const steps = ["Details"];
-                  if (formData.details.selectedActivities.length === 0) {
-                    steps.push("..");
-                  } else {
-                    steps.push(...formData.details.selectedActivities, "Preview");
-                  }
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[15px]">
+              <div className="w-full max-w-2xl mx-auto mb-6">
+                <div className="flex justify-between relative">
+                  {(() => {
+                    const steps = ["Details"];
+                    if (formData.details.selectedActivities.length === 0) {
+                      steps.push("..");
+                    } else {
+                      steps.push(...formData.details.selectedActivities, "Preview");
+                    }
 
-                  return steps.map((label, index) => {
-                    const stepNumber = index + 1;
-                    const isActive = currentPage === stepNumber;
-                    const isCompleted = completedSteps.includes(stepNumber);
+                    return steps.map((label, index) => {
+                      const stepNumber = index + 1;
+                      const isActive = currentPage === stepNumber;
+                      const isCompleted = completedSteps.includes(stepNumber);
 
-                    return (
-                      <div
-                        key={label}
-                        className="flex flex-col items-center flex-1 relative"
-                      >
-                        <span
-                          className={`text-sm mb-2 ${
-                            isActive
-                              ? "text-blue-600 font-medium"
-                              : "text-gray-500"
-                          }`}
-                        >
-                          {label}
-                        </span>
+                      return (
                         <div
-                          className={`w-5 h-5 rounded-full z-10 flex items-center justify-center transition-all duration-300 ${
-                            isCompleted
-                              ? "bg-blue-500"
-                              : isActive
-                              ? "bg-blue-600 scale-110"
-                              : "bg-gray-400"
-                          }`}
+                          key={label}
+                          className="flex flex-col items-center flex-1 relative"
                         >
-                          {isCompleted && <CheckIcon className="w-4 h-4 text-white" />}
-                        </div>
-                        {index < steps.length - 1 && (
-                          <div
-                            className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
-                              currentPage > stepNumber
-                                ? "bg-blue-600"
-                                : "bg-gray-300"
+                          <span
+                            className={`text-sm mb-2 ${
+                              isActive
+                                ? "text-blue-600 font-medium"
+                                : "text-gray-500"
                             }`}
-                          />
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
+                          >
+                            {label}
+                          </span>
+                          <div
+                            className={`w-5 h-5 rounded-full z-10 flex items-center justify-center transition-all duration-300 ${
+                              isCompleted
+                                ? "bg-blue-500"
+                                : isActive
+                                ? "bg-blue-600 scale-110"
+                                : "bg-gray-400"
+                            }`}
+                          >
+                            {isCompleted && <CheckIcon className="w-4 h-4 text-white" />}
+                          </div>
+                          {index < steps.length - 1 && (
+                            <div
+                              className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
+                                currentPage > stepNumber
+                                  ? "bg-blue-600"
+                                  : "bg-gray-300"
+                              }`}
+                            />
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
-            </div>
 
-            <div className="flex-1 overflow-y-auto mt-2 flex flex-col pb-10 px-4">
+              {errorMessage && (
+                <p className="text-red-500 text-sm mb-4 text-center">{errorMessage}</p>
+              )}
+
               <div className="w-full max-w-3xl mx-auto">
                 {currentPage === 1 && (
                   <div className="flex flex-col gap-4">
@@ -522,6 +581,8 @@ export default function ActivityResources() {
                         quizTypeLabel={type}
                         quizData={formData.activities[type] || { activityName: "", questions: [] }}
                         updateQuizData={(content) => updateActivityContent(type, content)}
+                        onValidate={(isValid, errors) => handleActivityValidation(type, isValid, errors)}
+                        validate={triggerValidation[type] || false}
                       />
                     </div>
                   );
@@ -605,35 +666,34 @@ export default function ActivityResources() {
               </div>
             </div>
 
-            <div className="mt-auto bg-white border-t border-gray-300 p-2">
-              <div className="flex justify-end gap-3 max-w-3xl mx-auto">
-                {currentPage > 1 && (
-                  <button
-                    onClick={handlePrevious}
-                    className="px-4 py-1 bg-gray-200 rounded-xl text-base text-gray-800 hover:bg-gray-300"
-                  >
-                    Back
-                  </button>
-                )}
+            <hr className="border-gray-300" />
+            <div className="flex justify-end gap-3 p-6 pt-4">
+              {currentPage > 1 && (
                 <button
-                  onClick={
-                    currentPage ===
-                    (formData.details.selectedActivities.length > 0
-                      ? 2 + formData.details.selectedActivities.length
-                      : 2)
-                      ? handleCreateActivity
-                      : handleNext
-                  }
-                  className="px-4 py-1 bg-blue-300 rounded-xl text-base text-white hover:bg-blue-400"
+                  onClick={handlePrevious}
+                  className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300"
                 >
-                  {currentPage ===
+                  Back
+                </button>
+              )}
+              <button
+                onClick={
+                  currentPage ===
                   (formData.details.selectedActivities.length > 0
                     ? 2 + formData.details.selectedActivities.length
                     : 2)
-                    ? "Publish"
-                    : "Next"}
-                </button>
-              </div>
+                    ? handleCreateActivity
+                    : handleNext
+                }
+                className="px-5 py-2 bg-blue-300 rounded-xl text-sm text-white hover:bg-blue-400"
+              >
+                {currentPage ===
+                (formData.details.selectedActivities.length > 0
+                  ? 2 + formData.details.selectedActivities.length
+                  : 2)
+                  ? "Publish"
+                  : "Next"}
+              </button>
             </div>
           </div>
         </div>

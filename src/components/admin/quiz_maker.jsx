@@ -9,8 +9,9 @@ import answerIcon from "../../assets/admin/text.svg";
 import fileUploadIcon from "../../assets/admin/docu_up.svg";
 import writeIcon from "../../assets/admin/write.svg";
 import moreOptionsIcon from "../../assets/admin/more_options_vertical.svg";
+import warningIcon from "../../assets/admin/warning.svg";
 
-export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData }) {
+export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, onValidate, validate }) {
   const [activityName, setActivityName] = useState(quizData.activityName || "");
   const [questions, setQuestions] = useState(quizData.questions || []);
   const [showSelector, setShowSelector] = useState(quizData.questions?.length === 0);
@@ -20,6 +21,8 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   const [imageTarget, setImageTarget] = useState(null);
   const [activeResizeIndex, setActiveResizeIndex] = useState(null);
   const [openDropdownIndex, setOpenDropdownIndex] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [questionValidationStatus, setQuestionValidationStatus] = useState({});
   const textareaRefs = useRef({});
   const imageContainerRefs = useRef({});
   const fileInputRef = useRef(null);
@@ -39,7 +42,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     if (hasChanged) {
       updateQuizData({ activityName, questions });
     }
-  }, [activityName, questions]);
+  }, [activityName, questions, updateQuizData]);
 
   useEffect(() => {
     Object.values(textareaRefs.current).forEach(autoResize);
@@ -70,11 +73,64 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     return () => observers.forEach((o) => o.disconnect());
   }, [questions]);
 
+  useEffect(() => {
+    const { globalErrors, questionErrors, isValid } = computeValidation();
+    onValidate(isValid, { ...globalErrors, questionErrors });
+  }, [activityName, questions, onValidate, quizTypeLabel]);
+
+  useEffect(() => {
+    if (validate) {
+      handleValidation();
+    }
+  }, [validate]);
+
   const autoResize = (element) => {
     if (element) {
       element.style.height = "auto";
       element.style.height = `${element.scrollHeight}px`;
     }
+  };
+
+  const computeValidation = () => {
+    const globalErrors = {};
+    const questionErrors = {};
+    if (!activityName.trim()) {
+      globalErrors.activityName = `${quizTypeLabel} Name is required.`;
+    }
+    if (questions.length === 0) {
+      globalErrors.questions = `At least one question is required for ${quizTypeLabel}.`;
+    }
+    questions.forEach((q, index) => {
+      const qErrors = {};
+      if (!q.text.trim()) {
+        qErrors.text = `Question ${index + 1} text is required.`;
+      }
+      if (!q.points || q.points === "" || isNaN(q.points) || Number(q.points) < 0) {
+        qErrors.points = `Points are required for Question ${index + 1}.`;
+      }
+      if (q.type === "Multiple Choice" && (q.correctIndex === null || q.correctIndex === undefined)) {
+        qErrors.correctAnswer = `A correct answer is required for Question ${index + 1}.`;
+      }
+      if (q.type === "Answer" && !q.expectedAnswer?.trim()) {
+        qErrors.correctAnswer = `An expected answer is required for Question ${index + 1}.`;
+      }
+      if (Object.keys(qErrors).length > 0) {
+        questionErrors[index] = qErrors;
+      }
+    });
+    const isValid = Object.keys(globalErrors).length === 0 && Object.keys(questionErrors).length === 0;
+    return { globalErrors, questionErrors, isValid };
+  };
+
+  const handleValidation = () => {
+    const { globalErrors, questionErrors, isValid } = computeValidation();
+    setValidationErrors({ ...globalErrors, questionErrors });
+    Object.entries(questionErrors).forEach(([index, qErrors]) => {
+      if (qErrors.points || qErrors.correctAnswer) {
+        setQuestionValidationStatus((prev) => ({ ...prev, [index]: true }));
+      }
+    });
+    onValidate(isValid, { ...globalErrors, questionErrors });
   };
 
   const toggleSettings = (qIndex) => {
@@ -88,6 +144,10 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
       }
       return newSet;
     });
+    setQuestionValidationStatus((prev) => ({
+      ...prev,
+      [qIndex]: false,
+    }));
   };
 
   const openImageModal = (qIndex, type, oIndex) => {
@@ -106,6 +166,27 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          imageError: 'Only JPG, JPEG, PNG, or GIF files are allowed.',
+        }));
+        setTimeout(() => {
+          setValidationErrors((prev) => ({ ...prev, imageError: null }));
+        }, 3000);
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          imageError: 'Image size must not exceed 10MB.',
+        }));
+        setTimeout(() => {
+          setValidationErrors((prev) => ({ ...prev, imageError: null }));
+        }, 3000);
+        return;
+      }
       setIsUploading(true);
       const reader = new FileReader();
       reader.onload = () => {
@@ -123,8 +204,8 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
               height *= scale;
             }
           } else if (imageTarget.type === 'option') {
-            width = 100; 
-            height = 100; 
+            width = 100;
+            height = 100;
           }
           setQuestions((prev) => {
             const newQuestions = [...prev];
@@ -181,6 +262,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     setQuestions(newQuestions);
     if (newQuestions.length === 0) {
       setShowSelector(true);
+      handleValidation(); 
     }
   };
 
@@ -238,6 +320,18 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     autoResize(textareaRefs.current[`answer-correct-${qIndex}`]);
   };
 
+  const handleClearActivityName = () => {
+    setActivityName("");
+    handleValidation(); 
+  };
+
+  const handleClearExpectedAnswer = (qIndex) => {
+    const newQuestions = [...questions];
+    newQuestions[qIndex].expectedAnswer = "";
+    setQuestions(newQuestions);
+    handleValidation(); 
+  };
+
   const handlePointsChange = (qIndex, value) => {
     const newQuestions = [...questions];
     newQuestions[qIndex].points = value;
@@ -247,12 +341,6 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   const handleCorrectIndexChange = (qIndex, oIndex) => {
     const newQuestions = [...questions];
     newQuestions[qIndex].correctIndex = oIndex;
-    setQuestions(newQuestions);
-  };
-
-  const handleClearExpectedAnswer = (qIndex) => {
-    const newQuestions = [...questions];
-    newQuestions[qIndex].expectedAnswer = "";
     setQuestions(newQuestions);
   };
 
@@ -275,6 +363,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     setQuestions((prev) => {
       const newQuestions = [...prev];
       newQuestions[qIndex].options[oIndex].image = null;
+      newQuestions[qIndex].options[oIndex].imageDimensions = null;
       return newQuestions;
     });
   };
@@ -287,7 +376,35 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     setActiveResizeIndex((prev) => (prev === qIndex ? null : qIndex));
   };
 
+  const handleValidateQuestionSettings = (qIndex) => {
+    const question = questions[qIndex];
+    const errors = {};
+    if (!question.points || question.points === "" || isNaN(question.points) || Number(question.points) < 0) {
+      errors.points = `Points are required for Question ${qIndex + 1}.`;
+    }
+    if (question.type === "Multiple Choice" && (question.correctIndex === null || question.correctIndex === undefined)) {
+      errors.correctAnswer = `A correct answer is required for Question ${qIndex + 1}.`;
+    }
+    if (question.type === "Answer" && !question.expectedAnswer?.trim()) {
+      errors.correctAnswer = `An expected answer is required for Question ${qIndex + 1}.`;
+    }
+    setQuestionValidationStatus((prev) => ({
+      ...prev,
+      [qIndex]: Object.keys(errors).length > 0,
+    }));
+    setValidationErrors((prev) => ({
+      ...prev,
+      questionErrors: {
+        ...prev.questionErrors,
+        [qIndex]: errors,
+      },
+    }));
+    return Object.keys(errors).length > 0;
+  };
+
   const renderQuestionBuilder = (question, qIndex) => {
+    const hasValidationError = questionValidationStatus[qIndex] && (validationErrors.questionErrors?.[qIndex]?.correctAnswer || validationErrors.questionErrors?.[qIndex]?.points);
+
     if (question.type === "Multiple Choice") {
       return (
         <div className="w-full max-w-3xl mx-auto flex flex-col gap-4 px-4">
@@ -334,7 +451,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     value={question.text}
                     onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
                     placeholder="Question"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                    className={`flex-1 px-3 py-2 border rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden ${
+                      validationErrors.questionErrors?.[qIndex]?.text ? "border-red-500" : "border-gray-300"
+                    }`}
                     rows="1"
                     onInput={(e) => autoResize(e.target)}
                   />
@@ -346,6 +465,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
+                {validationErrors.questionErrors?.[qIndex]?.text && (
+                  <p className="text-red-500 text-sm mb-2">{validationErrors.questionErrors[qIndex].text}</p>
+                )}
                 {question.image && (
                   <div
                     className={`mt-4 mb-6 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
@@ -434,9 +556,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                       <div className="relative ml-2 group">
                         <div
                           style={{
-                            width: '100px', 
+                            width: '100px',
                             height: '100px',
-                            border: '1px solid #d1d5db', 
+                            border: '1px solid #d1d5db',
                             padding: '4px',
                             backgroundColor: '#fff',
                             overflow: 'hidden',
@@ -471,18 +593,26 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
 
                 <hr className="mt-4 border-gray-300" />
 
-                <button
-                  onClick={() => toggleSettings(qIndex)}
-                  className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
-                >
-                  Set Correct Answer and Points
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleSettings(qIndex)}
+                    className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
+                  >
+                    Set Correct Answer and Points
+                  </button>
+                  {hasValidationError && (
+                    <img src={warningIcon} alt="Validation Error" className="w-4 h-4 text-red-500" />
+                  )}
+                </div>
+                {validationErrors.questionErrors?.[qIndex]?.points && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].points}</p>
+                )}
               </>
             )}
 
             {openQuestionSettings.has(`${qIndex}`) && (
               <div className="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
-                <h4 className="font-semibold mb-2">Correct Answer</h4>
+                <h4 className="font-semibold mb-2">Settings</h4>
                 <p className="mb-4">
                   <strong>Question:</strong>{" "}
                   <span className="inline-block">{question.text || "No question text entered"}</span>
@@ -492,49 +622,24 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                 )}
 
                 <div className="mb-4">
+                  <label className="block text-sm text-gray-500 mb-1">Correct Answer</label>
                   {question.options.map((option, oIndex) => (
-                    <div key={oIndex} className="flex items-center mb-2">
+                    <div key={oIndex} className="flex items-center gap-2 mb-2">
                       <input
                         type="radio"
-                        id={`correct-${qIndex}-${oIndex}`}
-                        name={`correct-${qIndex}`}
                         checked={question.correctIndex === oIndex}
                         onChange={() => handleCorrectIndexChange(qIndex, oIndex)}
-                        className="accent-blue-500 mr-2"
+                        className="accent-blue-500"
                       />
-                      <label htmlFor={`correct-${qIndex}-${oIndex}`} className="flex-1">
-                        <textarea
-                          ref={(el) =>
-                            (textareaRefs.current[`option-correct-${qIndex}-${oIndex}`] = el)
-                          }
-                          value={option.text || `Option ${oIndex + 1}`}
-                          readOnly
-                          className="w-full px-3 py-1 border border-gray-300 rounded-lg bg-gray-100 resize-none overflow-hidden"
-                          rows="1"
-                          onInput={(e) => autoResize(e.target)}
-                        />
-                        {option.image && (
-                          <div
-                            style={{
-                              width: '100px', 
-                              height: '100px', 
-                              border: '1px solid #d1d5db', 
-                              padding: '4px', 
-                              backgroundColor: '#fff', 
-                              overflow: 'hidden',
-                              borderRadius: '4px', 
-                            }}
-                          >
-                            <img
-                              src={option.image}
-                              alt={`Option ${oIndex + 1} image`}
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
-                        )}
-                      </label>
+                      <span className="text-sm">{option.text || `Option ${oIndex + 1}`}</span>
+                      {option.image && (
+                        <img src={option.image} alt={`Option ${oIndex + 1} image`} className="ml-2 w-16 h-16 object-contain" />
+                      )}
                     </div>
                   ))}
+                  {validationErrors.questionErrors?.[qIndex]?.correctAnswer && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].correctAnswer}</p>
+                  )}
                 </div>
 
                 <div className="mb-4">
@@ -545,14 +650,24 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     value={question.points}
                     onChange={(e) => handlePointsChange(qIndex, e.target.value)}
                     placeholder="Points"
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300"
+                    className={`w-24 px-3 py-2 border rounded-lg focus:border-blue-300 ${
+                      validationErrors.questionErrors?.[qIndex]?.points ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {validationErrors.questionErrors?.[qIndex]?.points && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].points}</p>
+                  )}
                 </div>
 
                 <hr className="mt-4 border-gray-300" />
 
                 <button
-                  onClick={() => toggleSettings(qIndex)}
+                  onClick={() => {
+                    const hasError = handleValidateQuestionSettings(qIndex);
+                    if (!hasError) {
+                      toggleSettings(qIndex);
+                    }
+                  }}
                   className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition cursor-pointer"
                 >
                   Done
@@ -608,7 +723,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     value={question.text}
                     onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
                     placeholder="Question"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                    className={`flex-1 px-3 py-2 border rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden ${
+                      validationErrors.questionErrors?.[qIndex]?.text ? "border-red-500" : "border-gray-300"
+                    }`}
                     rows="1"
                     onInput={(e) => autoResize(e.target)}
                   />
@@ -620,6 +737,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
+                {validationErrors.questionErrors?.[qIndex]?.text && (
+                  <p className="text-red-500 text-sm mb-2">{validationErrors.questionErrors[qIndex].text}</p>
+                )}
                 {question.image && (
                   <div
                     className={`mt-4 mb-6 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
@@ -675,48 +795,28 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                   </div>
                 )}
 
-                <label className="block text-sm text-gray-500 mb-1">
-                  Expected Answer (optional)
-                </label>
-                <div className="group relative">
-                  <textarea
-                    ref={(el) => (textareaRefs.current[`answer-${qIndex}`] = el)}
-                    value={question.expectedAnswer}
-                    disabled
-                    placeholder="Expected Answer"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 mb-3 resize-none overflow-hidden"
-                    rows="1"
-                    onInput={(e) => autoResize(e.target)}
-                  />
-                  <button
-                    onClick={() => openImageModal(qIndex, 'question')}
-                    className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
-                    title="Add Image"
-                  >
-                    <img src={imageIcon} alt="Add Image" className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleClearExpectedAnswer(qIndex)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
-
                 <hr className="mt-4 border-gray-300" />
 
-                <button
-                  onClick={() => toggleSettings(qIndex)}
-                  className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
-                >
-                  Set Correct Answer and Points
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleSettings(qIndex)}
+                    className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
+                  >
+                    Set Expected Answer and Points
+                  </button>
+                  {hasValidationError && (
+                    <img src={warningIcon} alt="Validation Error" className="w-4 h-4 text-red-500" />
+                  )}
+                </div>
+                {validationErrors.questionErrors?.[qIndex]?.points && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].points}</p>
+                )}
               </>
             )}
 
             {openQuestionSettings.has(`${qIndex}`) && (
               <div className="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
-                <h4 className="font-semibold mb-2">Correct Answer</h4>
+                <h4 className="font-semibold mb-2">Settings</h4>
                 <p className="mb-4">
                   <strong>Question:</strong>{" "}
                   <span className="inline-block">{question.text || "No question text entered"}</span>
@@ -726,14 +826,16 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                 )}
 
                 <div className="mb-4">
-                  <label className="block text-sm text-gray-500 mb-1">Correct Answer</label>
+                  <label className="block text-sm text-gray-500 mb-1">Expected Answer</label>
                   <div className="relative">
                     <textarea
                       ref={(el) => (textareaRefs.current[`answer-correct-${qIndex}`] = el)}
                       value={question.expectedAnswer}
                       onChange={(e) => handleExpectedAnswerChange(qIndex, e.target.value)}
-                      placeholder="Expected Answer"
-                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-blue-300 resize-none overflow-hidden"
+                      placeholder="Enter expected answer"
+                      className={`w-full px-3 py-2 border rounded-lg focus:border-blue-300 resize-none overflow-hidden ${
+                        validationErrors.questionErrors?.[qIndex]?.correctAnswer ? "border-red-500" : "border-gray-300"
+                      }`}
                       rows="1"
                       onInput={(e) => autoResize(e.target)}
                     />
@@ -744,6 +846,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                       ✕
                     </button>
                   </div>
+                  {validationErrors.questionErrors?.[qIndex]?.correctAnswer && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].correctAnswer}</p>
+                  )}
                 </div>
 
                 <div className="mb-4">
@@ -754,14 +859,24 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     value={question.points}
                     onChange={(e) => handlePointsChange(qIndex, e.target.value)}
                     placeholder="Points"
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300"
+                    className={`w-24 px-3 py-2 border rounded-lg focus:border-blue-300 ${
+                      validationErrors.questionErrors?.[qIndex]?.points ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {validationErrors.questionErrors?.[qIndex]?.points && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].points}</p>
+                  )}
                 </div>
 
                 <hr className="mt-4 border-gray-300" />
 
                 <button
-                  onClick={() => toggleSettings(qIndex)}
+                  onClick={() => {
+                    const hasError = handleValidateQuestionSettings(qIndex);
+                    if (!hasError) {
+                      toggleSettings(qIndex);
+                    }
+                  }}
                   className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition cursor-pointer"
                 >
                   Done
@@ -817,7 +932,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     value={question.text}
                     onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
                     placeholder="Enter upload instructions or question"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                    className={`flex-1 px-3 py-2 border rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden ${
+                      validationErrors.questionErrors?.[qIndex]?.text ? "border-red-500" : "border-gray-300"
+                    }`}
                     rows="1"
                     onInput={(e) => autoResize(e.target)}
                   />
@@ -829,6 +946,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
+                {validationErrors.questionErrors?.[qIndex]?.text && (
+                  <p className="text-red-500 text-sm mb-2">{validationErrors.questionErrors[qIndex].text}</p>
+                )}
                 {question.image && (
                   <div
                     className={`mt-4 mb-6 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
@@ -886,12 +1006,20 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
 
                 <hr className="mt-4 border-gray-300" />
 
-                <button
-                  onClick={() => toggleSettings(qIndex)}
-                  className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
-                >
-                  Set Points
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleSettings(qIndex)}
+                    className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
+                  >
+                    Set Points
+                  </button>
+                  {hasValidationError && (
+                    <img src={warningIcon} alt="Validation Error" className="w-4 h-4 text-red-500" />
+                  )}
+                </div>
+                {validationErrors.questionErrors?.[qIndex]?.points && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].points}</p>
+                )}
               </>
             )}
 
@@ -914,14 +1042,24 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     value={question.points}
                     onChange={(e) => handlePointsChange(qIndex, e.target.value)}
                     placeholder="Points"
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300"
+                    className={`w-24 px-3 py-2 border rounded-lg focus:border-blue-300 ${
+                      validationErrors.questionErrors?.[qIndex]?.points ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {validationErrors.questionErrors?.[qIndex]?.points && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].points}</p>
+                  )}
                 </div>
 
                 <hr className="mt-4 border-gray-300" />
 
                 <button
-                  onClick={() => toggleSettings(qIndex)}
+                  onClick={() => {
+                    const hasError = handleValidateQuestionSettings(qIndex);
+                    if (!hasError) {
+                      toggleSettings(qIndex);
+                    }
+                  }}
                   className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition cursor-pointer"
                 >
                   Done
@@ -977,7 +1115,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     value={question.text}
                     onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
                     placeholder="Enter question"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden"
+                    className={`flex-1 px-3 py-2 border rounded-lg focus:border-blue-300 mb-3 resize-none overflow-hidden ${
+                      validationErrors.questionErrors?.[qIndex]?.text ? "border-red-500" : "border-gray-300"
+                    }`}
                     rows="1"
                     onInput={(e) => autoResize(e.target)}
                   />
@@ -989,6 +1129,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     <img src={imageIcon} alt="Add Image" className="w-6 h-6" />
                   </button>
                 </div>
+                {validationErrors.questionErrors?.[qIndex]?.text && (
+                  <p className="text-red-500 text-sm mb-2">{validationErrors.questionErrors[qIndex].text}</p>
+                )}
                 {question.image && (
                   <div
                     className={`mt-4 mb-6 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
@@ -1046,12 +1189,20 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
 
                 <hr className="mt-4 border-gray-300" />
 
-                <button
-                  onClick={() => toggleSettings(qIndex)}
-                  className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
-                >
-                  Set Points
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleSettings(qIndex)}
+                    className="mt-2 text-blue-500 text-sm hover:underline cursor-pointer"
+                  >
+                    Set Points
+                  </button>
+                  {hasValidationError && (
+                    <img src={warningIcon} alt="Validation Error" className="w-4 h-4 text-red-500" />
+                  )}
+                </div>
+                {validationErrors.questionErrors?.[qIndex]?.points && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].points}</p>
+                )}
               </>
             )}
 
@@ -1074,14 +1225,24 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     value={question.points}
                     onChange={(e) => handlePointsChange(qIndex, e.target.value)}
                     placeholder="Points"
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-300"
+                    className={`w-24 px-3 py-2 border rounded-lg focus:border-blue-300 ${
+                      validationErrors.questionErrors?.[qIndex]?.points ? "border-red-500" : "border-gray-300"
+                    }`}
                   />
+                  {validationErrors.questionErrors?.[qIndex]?.points && (
+                    <p className="text-red-500 text-sm mt-1">{validationErrors.questionErrors[qIndex].points}</p>
+                  )}
                 </div>
 
                 <hr className="mt-4 border-gray-300" />
 
                 <button
-                  onClick={() => toggleSettings(qIndex)}
+                  onClick={() => {
+                    const hasError = handleValidateQuestionSettings(qIndex);
+                    if (!hasError) {
+                      toggleSettings(qIndex);
+                    }
+                  }}
                   className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition cursor-pointer"
                 >
                   Done
@@ -1132,18 +1293,27 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
               autoResize(e.target);
             }}
             placeholder={`Enter your ${quizTypeLabel.toLowerCase()} name...`}
-            className="w-full px-4 py-2 pr-8 border border-gray-300 rounded-xl focus:border-blue-300 focus:outline-none resize-none overflow-hidden"
+            className={`w-full px-4 py-2 pr-8 border rounded-xl focus:border-blue-300 focus:outline-none resize-none overflow-hidden ${
+              validationErrors.activityName ? "border-red-500" : "border-gray-300"
+            }`}
             rows="1"
             onInput={(e) => autoResize(e.target)}
           />
           <button
-            onClick={() => setActivityName("")}
+            onClick={handleClearActivityName}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
           >
             ✕
           </button>
         </div>
+        {validationErrors.activityName && (
+          <p className="text-red-500 text-sm mt-1">{validationErrors.activityName}</p>
+        )}
       </div>
+
+      {validationErrors.questions && (
+        <p className="text-red-500 text-sm mb-4">{validationErrors.questions}</p>
+      )}
 
       {questions.map((question, qIndex) => (
         <div key={qIndex} className="w-full max-w-3xl mx-auto mb-8 px-4">
@@ -1197,38 +1367,74 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
       )}
 
       {showImageModal && (
-        <div className="fixed inset-0 bg-black/30 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-lg p-8 mx-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Insert Image</h3>
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-md p-6 flex flex-col">
+            <div className="flex justify-between items-center pb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Insert Image</h3>
               <button
                 onClick={closeImageModal}
-                className="text-red-500 hover:text-red-700 cursor-pointer"
+                className="text-gray-500 hover:text-gray-700"
               >
-                ✕
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
               </button>
             </div>
-            <hr className="mb-4 border-gray-300" />
-            <div className="flex justify-center">
+            <hr className="border-gray-300" />
+            <div className="flex-1 flex flex-col items-center justify-center py-6">
               {isUploading ? (
-                <div className="progress-line"></div>
+                <>
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 border-4 border-t-4 border-blue-500 rounded-full animate-spin"></div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Uploading...</h3>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: '50%' }}
+                    ></div>
+                  </div>
+                  <p className="text-gray-600">50% uploaded</p>
+                </>
               ) : (
                 <>
                   <input
                     type="file"
-                    accept="image/png,image/jpeg,image/jpg"
+                    accept="image/png,image/jpeg,image/jpg,image/gif"
                     ref={fileInputRef}
                     className="hidden"
                     onChange={handleImageSelect}
                   />
                   <button
                     onClick={() => fileInputRef.current.click()}
-                    className="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition cursor-pointer"
+                    className="px-6 py-2 bg-blue-300 text-white rounded-xl hover:bg-blue-400"
                   >
                     Browse
                   </button>
                 </>
               )}
+              {validationErrors.imageError && (
+                <p className="text-red-500 text-sm mt-4">{validationErrors.imageError}</p>
+              )}
+            </div>
+            <hr className="border-gray-300" />
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                onClick={closeImageModal}
+                className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
