@@ -27,6 +27,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
   const imageContainerRefs = useRef({});
   const fileInputRef = useRef(null);
   const selectorRef = useRef(null);
+  const prevValidationRef = useRef(null); // Store previous validation result
 
   useEffect(() => {
     if (showSelector && selectorRef.current && questions.length > 0) {
@@ -73,11 +74,19 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
     return () => observers.forEach((o) => o.disconnect());
   }, [questions]);
 
+  // Silent validation to keep onValidate up-to-date without showing errors
   useEffect(() => {
     const { globalErrors, questionErrors, isValid } = computeValidation();
-    onValidate(isValid, { ...globalErrors, questionErrors });
+    const currentValidation = JSON.stringify({ isValid, globalErrors, questionErrors });
+
+    // Only call onValidate if validation state has changed
+    if (currentValidation !== prevValidationRef.current) {
+      onValidate(isValid, { ...globalErrors, questionErrors });
+      prevValidationRef.current = currentValidation;
+    }
   }, [activityName, questions, onValidate, quizTypeLabel]);
 
+  // Triggered validation to show errors
   useEffect(() => {
     if (validate) {
       handleValidation();
@@ -144,6 +153,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
       }
       return newSet;
     });
+    // Reset validation status when opening settings
     setQuestionValidationStatus((prev) => ({
       ...prev,
       [qIndex]: false,
@@ -262,7 +272,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
     setQuestions(newQuestions);
     if (newQuestions.length === 0) {
       setShowSelector(true);
-      handleValidation(); 
+      handleValidation();
     }
   };
 
@@ -322,14 +332,14 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
 
   const handleClearActivityName = () => {
     setActivityName("");
-    handleValidation(); 
+    handleValidation();
   };
 
   const handleClearExpectedAnswer = (qIndex) => {
     const newQuestions = [...questions];
     newQuestions[qIndex].expectedAnswer = "";
     setQuestions(newQuestions);
-    handleValidation(); 
+    handleValidation();
   };
 
   const handlePointsChange = (qIndex, value) => {
