@@ -51,12 +51,15 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
       const el = imageContainerRefs.current[qIndex];
       if (el) {
         const observer = new ResizeObserver(() => {
+          const containerWidth = el.parentElement.clientWidth;
           setQuestions((prev) => {
             const newQuestions = [...prev];
-            newQuestions[qIndex].imageDimensions = {
-              width: el.clientWidth,
-              height: el.clientHeight,
-            };
+            if (newQuestions[qIndex].imageDimensions) {
+              newQuestions[qIndex].imageDimensions = {
+                width: Math.min(newQuestions[qIndex].imageDimensions.width, containerWidth),
+                height: Math.min(newQuestions[qIndex].imageDimensions.height, containerWidth * 0.75),
+              };
+            }
             return newQuestions;
           });
         });
@@ -111,8 +114,9 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
         img.onload = () => {
           let width = img.width;
           let height = img.height;
-          if (width > 600) {
-            const scale = 600 / width;
+          const maxWidth = 600;
+          if (width > maxWidth) {
+            const scale = maxWidth / width;
             width *= scale;
             height *= scale;
           }
@@ -337,11 +341,13 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                 </div>
                 {question.image && (
                   <div
-                    className={`mt-2 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
+                    className={`mt-4 mb-6 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
                     ref={(el) => (imageContainerRefs.current[qIndex] = el)}
                     style={{
-                      width: `${question.imageDimensions?.width}px`,
-                      height: `${question.imageDimensions?.height}px`,
+                      width: question.imageDimensions?.width ? `${question.imageDimensions.width}px` : '100%',
+                      height: question.imageDimensions?.height ? `${question.imageDimensions.height}px` : 'auto',
+                      maxWidth: '100%',
+                      maxHeight: '450px',
                       minWidth: '50px',
                       minHeight: '50px',
                       resize: activeResizeIndex === qIndex ? 'both' : 'none',
@@ -577,11 +583,13 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                 </div>
                 {question.image && (
                   <div
-                    className={`mt-2 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
+                    className={`mt-4 mb-6 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
                     ref={(el) => (imageContainerRefs.current[qIndex] = el)}
                     style={{
-                      width: `${question.imageDimensions?.width}px`,
-                      height: `${question.imageDimensions?.height}px`,
+                      width: question.imageDimensions?.width ? `${question.imageDimensions.width}px` : '100%',
+                      height: question.imageDimensions?.height ? `${question.imageDimensions.height}px` : 'auto',
+                      maxWidth: '100%',
+                      maxHeight: '450px',
                       minWidth: '50px',
                       minHeight: '50px',
                       resize: activeResizeIndex === qIndex ? 'both' : 'none',
@@ -784,11 +792,13 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                 </div>
                 {question.image && (
                   <div
-                    className={`mt-2 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
+                    className={`mt-4 mb-6 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
                     ref={(el) => (imageContainerRefs.current[qIndex] = el)}
                     style={{
-                      width: `${question.imageDimensions?.width}px`,
-                      height: `${question.imageDimensions?.height}px`,
+                      width: question.imageDimensions?.width ? `${question.imageDimensions.width}px` : '100%',
+                      height: question.imageDimensions?.height ? `${question.imageDimensions.height}px` : 'auto',
+                      maxWidth: '100%',
+                      maxHeight: '450px',
                       minWidth: '50px',
                       minHeight: '50px',
                       resize: activeResizeIndex === qIndex ? 'both' : 'none',
@@ -942,11 +952,13 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                 </div>
                 {question.image && (
                   <div
-                    className={`mt-2 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
+                    className={`mt-4 mb-6 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
                     ref={(el) => (imageContainerRefs.current[qIndex] = el)}
                     style={{
-                      width: `${question.imageDimensions?.width}px`,
-                      height: `${question.imageDimensions?.height}px`,
+                      width: question.imageDimensions?.width ? `${question.imageDimensions.width}px` : '100%',
+                      height: question.imageDimensions?.height ? `${question.imageDimensions.height}px` : 'auto',
+                      maxWidth: '100%',
+                      maxHeight: '450px',
                       minWidth: '50px',
                       minHeight: '50px',
                       resize: activeResizeIndex === qIndex ? 'both' : 'none',
@@ -1146,7 +1158,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
       )}
 
       {showImageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-lg p-8 mx-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Insert Image</h3>
