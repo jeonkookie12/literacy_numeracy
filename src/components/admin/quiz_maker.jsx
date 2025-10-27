@@ -8,6 +8,7 @@ import multipleChoiceIcon from "../../assets/admin/radio_button.svg";
 import answerIcon from "../../assets/admin/text.svg";
 import fileUploadIcon from "../../assets/admin/docu_up.svg";
 import writeIcon from "../../assets/admin/write.svg";
+import moreOptionsIcon from "../../assets/admin/more_options_vertical.svg";
 
 export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData }) {
   const [activityName, setActivityName] = useState(quizData.activityName || "");
@@ -17,7 +18,10 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
   const [showImageModal, setShowImageModal] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [imageTarget, setImageTarget] = useState(null);
+  const [activeResizeIndex, setActiveResizeIndex] = useState(null);
+  const [openDropdownIndex, setOpenDropdownIndex] = useState(null);
   const textareaRefs = useRef({});
+  const imageContainerRefs = useRef({});
   const fileInputRef = useRef(null);
   const selectorRef = useRef(null);
 
@@ -39,6 +43,28 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
 
   useEffect(() => {
     Object.values(textareaRefs.current).forEach(autoResize);
+  }, [questions]);
+
+  useEffect(() => {
+    const observers = [];
+    questions.forEach((_, qIndex) => {
+      const el = imageContainerRefs.current[qIndex];
+      if (el) {
+        const observer = new ResizeObserver(() => {
+          setQuestions((prev) => {
+            const newQuestions = [...prev];
+            newQuestions[qIndex].imageDimensions = {
+              width: el.clientWidth,
+              height: el.clientHeight,
+            };
+            return newQuestions;
+          });
+        });
+        observer.observe(el);
+        observers.push(observer);
+      }
+    });
+    return () => observers.forEach((o) => o.disconnect());
   }, [questions]);
 
   const autoResize = (element) => {
@@ -80,18 +106,30 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
       setIsUploading(true);
       const reader = new FileReader();
       reader.onload = () => {
-        setQuestions((prev) => {
-          const newQuestions = [...prev];
-          if (imageTarget.type === 'question') {
-            newQuestions[imageTarget.qIndex].image = reader.result;
-          } else if (imageTarget.type === 'option' && imageTarget.oIndex !== undefined) {
-            newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].image = reader.result;
+        const img = new Image();
+        img.src = reader.result;
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > 600) {
+            const scale = 600 / width;
+            width *= scale;
+            height *= scale;
           }
-          return newQuestions;
-        });
-        setTimeout(() => {
-          closeImageModal();
-        }, 1000);
+          setQuestions((prev) => {
+            const newQuestions = [...prev];
+            if (imageTarget.type === 'question') {
+              newQuestions[imageTarget.qIndex].image = reader.result;
+              newQuestions[imageTarget.qIndex].imageDimensions = { width, height };
+            } else if (imageTarget.type === 'option' && imageTarget.oIndex !== undefined) {
+              newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].image = reader.result;
+            }
+            return newQuestions;
+          });
+          setTimeout(() => {
+            closeImageModal();
+          }, 1000);
+        };
       };
       reader.readAsDataURL(file);
     }
@@ -207,6 +245,37 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
     setQuestions(newQuestions);
   };
 
+  const removeQuestionImage = (qIndex) => {
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      newQuestions[qIndex].image = null;
+      newQuestions[qIndex].imageDimensions = null;
+      return newQuestions;
+    });
+    setOpenDropdownIndex(null);
+  };
+
+  const changeQuestionImage = (qIndex) => {
+    openImageModal(qIndex, 'question');
+    setOpenDropdownIndex(null);
+  };
+
+  const removeOptionImage = (qIndex, oIndex) => {
+    setQuestions((prev) => {
+      const newQuestions = [...prev];
+      newQuestions[qIndex].options[oIndex].image = null;
+      return newQuestions;
+    });
+  };
+
+  const toggleDropdown = (qIndex) => {
+    setOpenDropdownIndex((prev) => (prev === qIndex ? null : qIndex));
+  };
+
+  const toggleResize = (qIndex) => {
+    setActiveResizeIndex((prev) => (prev === qIndex ? null : qIndex));
+  };
+
   const renderQuestionBuilder = (question, qIndex) => {
     if (question.type === "Multiple Choice") {
       return (
@@ -267,7 +336,56 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                   </button>
                 </div>
                 {question.image && (
-                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs" />
+                  <div
+                    className={`mt-2 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
+                    ref={(el) => (imageContainerRefs.current[qIndex] = el)}
+                    style={{
+                      width: `${question.imageDimensions?.width}px`,
+                      height: `${question.imageDimensions?.height}px`,
+                      minWidth: '50px',
+                      minHeight: '50px',
+                      resize: activeResizeIndex === qIndex ? 'both' : 'none',
+                      overflow: 'hidden',
+                    }}
+                    onClick={() => toggleResize(qIndex)}
+                  >
+                    <img
+                      src={question.image}
+                      alt="Question image"
+                      className="w-full h-full object-contain cursor-pointer"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDropdown(qIndex);
+                      }}
+                      className="absolute top-0 right-0 p-1 hidden group-hover:block"
+                    >
+                      <img src={moreOptionsIcon} alt="More options" className="w-5 h-5" />
+                    </button>
+                    {openDropdownIndex === qIndex && (
+                      <div className="absolute top-0 right-0 mt-8 bg-white shadow-lg rounded-lg z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            changeQuestionImage(qIndex);
+                          }}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        >
+                          Change Image
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeQuestionImage(qIndex);
+                          }}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-500"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {question.options.map((option, oIndex) => (
@@ -300,7 +418,17 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                       </button>
                     )}
                     {option.image && (
-                      <img src={option.image} alt={`Option ${oIndex + 1} image`} className="mt-2 max-w-[100px]" />
+                      <div className="relative ml-2 group">
+                        <img src={option.image} alt={`Option ${oIndex + 1} image`} className="max-h-20" />
+                        <button
+                          onClick={() => removeOptionImage(qIndex, oIndex)}
+                          className="absolute top-0 right-0 bg-white rounded-full p-1 text-red-500 hidden group-hover:block shadow"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -448,7 +576,56 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                   </button>
                 </div>
                 {question.image && (
-                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs" />
+                  <div
+                    className={`mt-2 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
+                    ref={(el) => (imageContainerRefs.current[qIndex] = el)}
+                    style={{
+                      width: `${question.imageDimensions?.width}px`,
+                      height: `${question.imageDimensions?.height}px`,
+                      minWidth: '50px',
+                      minHeight: '50px',
+                      resize: activeResizeIndex === qIndex ? 'both' : 'none',
+                      overflow: 'hidden',
+                    }}
+                    onClick={() => toggleResize(qIndex)}
+                  >
+                    <img
+                      src={question.image}
+                      alt="Question image"
+                      className="w-full h-full object-contain cursor-pointer"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDropdown(qIndex);
+                      }}
+                      className="absolute top-0 right-0 p-1 hidden group-hover:block"
+                    >
+                      <img src={moreOptionsIcon} alt="More options" className="w-5 h-5" />
+                    </button>
+                    {openDropdownIndex === qIndex && (
+                      <div className="absolute top-0 right-0 mt-8 bg-white shadow-lg rounded-lg z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            changeQuestionImage(qIndex);
+                          }}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        >
+                          Change Image
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeQuestionImage(qIndex);
+                          }}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-500"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <label className="block text-sm text-gray-500 mb-1">
@@ -606,7 +783,56 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                   </button>
                 </div>
                 {question.image && (
-                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs" />
+                  <div
+                    className={`mt-2 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
+                    ref={(el) => (imageContainerRefs.current[qIndex] = el)}
+                    style={{
+                      width: `${question.imageDimensions?.width}px`,
+                      height: `${question.imageDimensions?.height}px`,
+                      minWidth: '50px',
+                      minHeight: '50px',
+                      resize: activeResizeIndex === qIndex ? 'both' : 'none',
+                      overflow: 'hidden',
+                    }}
+                    onClick={() => toggleResize(qIndex)}
+                  >
+                    <img
+                      src={question.image}
+                      alt="Question image"
+                      className="w-full h-full object-contain cursor-pointer"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDropdown(qIndex);
+                      }}
+                      className="absolute top-0 right-0 p-1 hidden group-hover:block"
+                    >
+                      <img src={moreOptionsIcon} alt="More options" className="w-5 h-5" />
+                    </button>
+                    {openDropdownIndex === qIndex && (
+                      <div className="absolute top-0 right-0 mt-8 bg-white shadow-lg rounded-lg z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            changeQuestionImage(qIndex);
+                          }}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        >
+                          Change Image
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeQuestionImage(qIndex);
+                          }}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-500"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <hr className="mt-4 border-gray-300" />
@@ -715,7 +941,56 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                   </button>
                 </div>
                 {question.image && (
-                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs" />
+                  <div
+                    className={`mt-2 relative group ${activeResizeIndex === qIndex ? 'border-2 border-blue-500' : ''}`}
+                    ref={(el) => (imageContainerRefs.current[qIndex] = el)}
+                    style={{
+                      width: `${question.imageDimensions?.width}px`,
+                      height: `${question.imageDimensions?.height}px`,
+                      minWidth: '50px',
+                      minHeight: '50px',
+                      resize: activeResizeIndex === qIndex ? 'both' : 'none',
+                      overflow: 'hidden',
+                    }}
+                    onClick={() => toggleResize(qIndex)}
+                  >
+                    <img
+                      src={question.image}
+                      alt="Question image"
+                      className="w-full h-full object-contain cursor-pointer"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDropdown(qIndex);
+                      }}
+                      className="absolute top-0 right-0 p-1 hidden group-hover:block"
+                    >
+                      <img src={moreOptionsIcon} alt="More options" className="w-5 h-5" />
+                    </button>
+                    {openDropdownIndex === qIndex && (
+                      <div className="absolute top-0 right-0 mt-8 bg-white shadow-lg rounded-lg z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            changeQuestionImage(qIndex);
+                          }}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        >
+                          Change Image
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeQuestionImage(qIndex);
+                          }}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-red-500"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <hr className="mt-4 border-gray-300" />
