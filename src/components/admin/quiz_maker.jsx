@@ -112,13 +112,19 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
         const img = new Image();
         img.src = reader.result;
         img.onload = () => {
-          let width = img.width;
-          let height = img.height;
-          const maxWidth = 600;
-          if (width > maxWidth) {
-            const scale = maxWidth / width;
-            width *= scale;
-            height *= scale;
+          let width, height;
+          if (imageTarget.type === 'question') {
+            width = img.width;
+            height = img.height;
+            const maxWidth = 600;
+            if (width > maxWidth) {
+              const scale = maxWidth / width;
+              width *= scale;
+              height *= scale;
+            }
+          } else if (imageTarget.type === 'option') {
+            width = 100; 
+            height = 100; 
           }
           setQuestions((prev) => {
             const newQuestions = [...prev];
@@ -127,6 +133,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
               newQuestions[imageTarget.qIndex].imageDimensions = { width, height };
             } else if (imageTarget.type === 'option' && imageTarget.oIndex !== undefined) {
               newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].image = reader.result;
+              newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].imageDimensions = { width, height };
             }
             return newQuestions;
           });
@@ -425,7 +432,23 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                     )}
                     {option.image && (
                       <div className="relative ml-2 group">
-                        <img src={option.image} alt={`Option ${oIndex + 1} image`} className="max-h-20" />
+                        <div
+                          style={{
+                            width: '100px', 
+                            height: '100px',
+                            border: '1px solid #d1d5db', 
+                            padding: '4px',
+                            backgroundColor: '#fff',
+                            overflow: 'hidden',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          <img
+                            src={option.image}
+                            alt={`Option ${oIndex + 1} image`}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
                         <button
                           onClick={() => removeOptionImage(qIndex, oIndex)}
                           className="absolute top-0 right-0 bg-white rounded-full p-1 text-red-500 hidden group-hover:block shadow"
@@ -491,7 +514,23 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData })
                           onInput={(e) => autoResize(e.target)}
                         />
                         {option.image && (
-                          <img src={option.image} alt={`Option ${oIndex + 1} image`} className="mt-2 max-w-[100px]" />
+                          <div
+                            style={{
+                              width: '100px', 
+                              height: '100px', 
+                              border: '1px solid #d1d5db', 
+                              padding: '4px', 
+                              backgroundColor: '#fff', 
+                              overflow: 'hidden',
+                              borderRadius: '4px', 
+                            }}
+                          >
+                            <img
+                              src={option.image}
+                              alt={`Option ${oIndex + 1} image`}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
                         )}
                       </label>
                     </div>
