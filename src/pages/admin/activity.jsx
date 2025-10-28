@@ -30,8 +30,7 @@ export default function ActivityResources() {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [openDropdownId, setOpenDropdownId] = useState(null);
-  const [triggerValidation, setTriggerValidation] = useState({}); // Map to trigger validation per activity type
-
+  const [triggerValidation, setTriggerValidation] = useState({}); 
   useEffect(() => {
     let isMounted = true;
     console.log('Fetching tags...');
@@ -162,14 +161,52 @@ export default function ActivityResources() {
       return;
     }
 
+    const formDataToSend = new FormData();
+    formDataToSend.append('activityTitle', formData.details.activityTitle);
+    formDataToSend.append('selectedTags', JSON.stringify(formData.details.selectedTags));
+    formDataToSend.append('selectedActivities', JSON.stringify(formData.details.selectedActivities));
+    formDataToSend.append('activities', JSON.stringify(formData.activities));
+
+    //console.log('FormData entries:');
+    for (let [key, value] of formDataToSend.entries()) {
+      console.log(key, value);
+    }
+
+    formData.details.selectedActivities.forEach((activityType, activityIndex) => {
+      const activity = formData.activities[activityType];
+      if (activity?.questions) {
+        activity.questions.forEach((question, questionIndex) => {
+          if (question.imageFile) {
+            console.log(`Adding question image: questions_${activityIndex}_${questionIndex}_image`, question.imageFile);
+            formDataToSend.append(
+              `questions_${activityIndex}_${questionIndex}_image`,
+              question.imageFile
+            );
+          }
+          
+          if (question.type === "Multiple Choice" && question.options) {
+            question.options.forEach((option, optionIndex) => {
+              if (option.imageFile) {
+                console.log(`Adding option image: questions_${activityIndex}_${questionIndex}_option_${optionIndex}_image`, option.imageFile);
+                formDataToSend.append(
+                  `questions_${activityIndex}_${questionIndex}_option_${optionIndex}_image`,
+                  option.imageFile
+                );
+              }
+            });
+          }
+        });
+      }
+    });
+
     fetch('http://localhost/literacynumeracy/admin/create_activity.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      body: formDataToSend,
       credentials: 'include',
-      body: JSON.stringify(formData),
     })
       .then(response => response.json())
       .then(data => {
+//        console.log('Backend response:', data);
         if (data.success) {
           console.log('Activity created:', data);
           handleCloseModal();

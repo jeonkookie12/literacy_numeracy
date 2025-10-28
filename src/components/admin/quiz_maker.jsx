@@ -197,43 +197,53 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
         }, 3000);
         return;
       }
+      
       setIsUploading(true);
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.src = reader.result;
-        img.onload = () => {
-          let width, height;
-          if (imageTarget.type === 'question') {
-            width = img.width;
-            height = img.height;
+
+      if (imageTarget.type === 'question') {
+        setQuestions((prev) => {
+          const newQuestions = [...prev];
+          newQuestions[imageTarget.qIndex].imageFile = file;
+          
+          const previewUrl = URL.createObjectURL(file);
+          newQuestions[imageTarget.qIndex].image = previewUrl;
+          
+          const img = new Image();
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
             const maxWidth = 600;
             if (width > maxWidth) {
               const scale = maxWidth / width;
               width *= scale;
               height *= scale;
             }
-          } else if (imageTarget.type === 'option') {
-            width = 100;
-            height = 100;
-          }
-          setQuestions((prev) => {
-            const newQuestions = [...prev];
-            if (imageTarget.type === 'question') {
-              newQuestions[imageTarget.qIndex].image = reader.result;
-              newQuestions[imageTarget.qIndex].imageDimensions = { width, height };
-            } else if (imageTarget.type === 'option' && imageTarget.oIndex !== undefined) {
-              newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].image = reader.result;
-              newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].imageDimensions = { width, height };
-            }
-            return newQuestions;
-          });
-          setTimeout(() => {
-            closeImageModal();
-          }, 1000);
-        };
-      };
-      reader.readAsDataURL(file);
+            setQuestions((prevQuestions) => {
+              const updatedQuestions = [...prevQuestions];
+              updatedQuestions[imageTarget.qIndex].imageDimensions = { width, height };
+              return updatedQuestions;
+            });
+          };
+          img.src = previewUrl;
+          
+          return newQuestions;
+        });
+      } else if (imageTarget.type === 'option' && imageTarget.oIndex !== undefined) {
+        setQuestions((prev) => {
+          const newQuestions = [...prev];
+          newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].imageFile = file;
+          
+          const previewUrl = URL.createObjectURL(file);
+          newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].image = previewUrl;
+          newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].imageDimensions = { width: 100, height: 100 };
+          
+          return newQuestions;
+        });
+      }
+      
+      setTimeout(() => {
+        closeImageModal();
+      }, 1000);
     }
   };
 
@@ -358,6 +368,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
     setQuestions((prev) => {
       const newQuestions = [...prev];
       newQuestions[qIndex].image = null;
+      newQuestions[qIndex].imageFile = null;
       newQuestions[qIndex].imageDimensions = null;
       return newQuestions;
     });
@@ -373,6 +384,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
     setQuestions((prev) => {
       const newQuestions = [...prev];
       newQuestions[qIndex].options[oIndex].image = null;
+      newQuestions[qIndex].options[oIndex].imageFile = null;
       newQuestions[qIndex].options[oIndex].imageDimensions = null;
       return newQuestions;
     });
@@ -411,6 +423,24 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
     }));
     return Object.keys(errors).length > 0;
   };
+
+  useEffect(() => {
+    return () => {
+      // Clean up object URLs to prevent memory leaks
+      questions.forEach((question) => {
+        if (question.image && question.image.startsWith('blob:')) {
+          URL.revokeObjectURL(question.image);
+        }
+        if (question.options) {
+          question.options.forEach((option) => {
+            if (option.image && option.image.startsWith('blob:')) {
+              URL.revokeObjectURL(option.image);
+            }
+          });
+        }
+      });
+    };
+  }, []);
 
   const renderQuestionBuilder = (question, qIndex) => {
     const hasValidationError = questionValidationStatus[qIndex] && (validationErrors.questionErrors?.[qIndex]?.correctAnswer || validationErrors.questionErrors?.[qIndex]?.points);
