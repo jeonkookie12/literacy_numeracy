@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import JSZip from "jszip";
-import subjectIcon from "../../assets/admin/subject.svg";
 import dateIcon from "../../assets/admin/date.svg";
 import languageIcon from "../../assets/admin/language.svg";
 import uploadIcon from "../../assets/admin/upload.svg";
@@ -21,11 +20,13 @@ export default function LearningMaterials() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [resourceTitle, setResourceTitle] = useState("");
   const [resourceDescription, setResourceDescription] = useState("");
+  const [resourceLanguage, setResourceLanguage] = useState("");
   const [tagsInput, setTagsInput] = useState("");
   const [tags, setTags] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [titleError, setTitleError] = useState("");
+  const [languageError, setLanguageError] = useState("");
   const [tagsError, setTagsError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
@@ -36,12 +37,21 @@ export default function LearningMaterials() {
   const [editResource, setEditResource] = useState(null);
   const [editFiles, setEditFiles] = useState([]);
   const [editTags, setEditTags] = useState([]);
+  const [editLanguage, setEditLanguage] = useState("");
   const [editingTagIndex, setEditingTagIndex] = useState(null);
   const [editTagValue, setEditTagValue] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("All");
+  const [sortType, setSortType] = useState("date_desc");
+  const [isTitleDropdownOpen, setIsTitleDropdownOpen] = useState(false);
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
 
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const titleDropdownRef = useRef(null);
+  const dateDropdownRef = useRef(null);
+  const languageDropdownRef = useRef(null);
 
   const BASE_URL = "http://localhost/literacynumeracy/";
 
@@ -49,7 +59,7 @@ export default function LearningMaterials() {
     if (filePath.startsWith(BASE_URL)) {
       return filePath.replace(BASE_URL, "");
     }
-    return filePath; 
+    return filePath;
   };
 
   useEffect(() => {
@@ -94,6 +104,22 @@ export default function LearningMaterials() {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [previewFile, isViewModalOpen, isEditModalOpen]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (titleDropdownRef.current && !titleDropdownRef.current.contains(event.target)) {
+        setIsTitleDropdownOpen(false);
+      }
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target)) {
+        setIsDateDropdownOpen(false);
+      }
+      if (languageDropdownRef.current && !languageDropdownRef.current.contains(event.target)) {
+        setIsLanguageDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleUploadClick = () => setIsModalOpen(true);
 
   const handleCloseModal = () => {
@@ -118,11 +144,13 @@ export default function LearningMaterials() {
   const resetForm = () => {
     setResourceTitle("");
     setResourceDescription("");
+    setResourceLanguage("");
     setTagsInput("");
     setTags([]);
     setSelectedFiles([]);
     setErrorMessage("");
     setTitleError("");
+    setLanguageError("");
     setTagsError("");
   };
 
@@ -134,6 +162,13 @@ export default function LearningMaterials() {
       valid = false;
     } else {
       setTitleError("");
+    }
+
+    if (!resourceLanguage) {
+      setLanguageError("Language is required.");
+      valid = false;
+    } else {
+      setLanguageError("");
     }
 
     if (tags.length === 0) {
@@ -158,6 +193,7 @@ export default function LearningMaterials() {
     const formData = new FormData();
     formData.append("resourceTitle", resourceTitle.trim());
     formData.append("resourceDescription", resourceDescription.trim());
+    formData.append("language", resourceLanguage);
     formData.append("tags", JSON.stringify(tags));
 
     selectedFiles.forEach((file, index) => {
@@ -326,9 +362,23 @@ export default function LearningMaterials() {
     return null;
   };
 
-  const filteredResources = resources.filter((resource) =>
-    resource.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredResources = resources
+    .filter((resource) =>
+      resource.title.toLowerCase().includes(search.toLowerCase()) &&
+      (selectedLanguage === "All" || resource.language === selectedLanguage)
+    )
+    .sort((a, b) => {
+      if (sortType === "title_asc") {
+        return a.title.localeCompare(b.title);
+      } else if (sortType === "title_desc") {
+        return b.title.localeCompare(a.title);
+      } else if (sortType === "date_desc") {
+        return new Date(b.date_uploaded) - new Date(a.date_uploaded);
+      } else if (sortType === "date_asc") {
+        return new Date(a.date_uploaded) - new Date(b.date_uploaded);
+      }
+      return 0;
+    });
 
   const handleViewResource = (resource) => {
     if (!resource || !resource.id) {
@@ -389,6 +439,7 @@ export default function LearningMaterials() {
     setEditResource(normalizedResource);
     setResourceTitle(normalizedResource.title);
     setResourceDescription(normalizedResource.description || "");
+    setEditLanguage(normalizedResource.language || "");
     setEditTags(normalizedResource.tags || []);
     setEditFiles(normalizedResource.files || []);
     setIsEditModalOpen(true);
@@ -400,6 +451,7 @@ export default function LearningMaterials() {
     if (
       resourceTitle.trim() !== editResource.title ||
       resourceDescription.trim() !== (editResource.description || "") ||
+      editLanguage !== (editResource.language || "") ||
       JSON.stringify(editTags) !== JSON.stringify(editResource.tags || []) ||
       editFiles.length !== editResource.files.length
     ) {
@@ -413,10 +465,12 @@ export default function LearningMaterials() {
   const resetEditForm = () => {
     setResourceTitle("");
     setResourceDescription("");
+    setEditLanguage("");
     setEditTags([]);
     setEditFiles([]);
     setErrorMessage("");
     setTitleError("");
+    setLanguageError("");
     setTagsError("");
     setEditResource(null);
     setEditingTagIndex(null);
@@ -497,6 +551,13 @@ export default function LearningMaterials() {
       setTitleError("");
     }
 
+    if (!editLanguage) {
+      setLanguageError("Language is required.");
+      valid = false;
+    } else {
+      setLanguageError("");
+    }
+
     if (editTags.length === 0) {
       setTagsError("At least one tag is required.");
       valid = false;
@@ -520,6 +581,7 @@ export default function LearningMaterials() {
     formData.append("resourceId", editResource.id);
     formData.append("resourceTitle", resourceTitle.trim());
     formData.append("resourceDescription", resourceDescription.trim());
+    formData.append("language", editLanguage);
     formData.append("tags", JSON.stringify(editTags));
 
     editFiles.forEach((file, index) => {
@@ -685,41 +747,104 @@ export default function LearningMaterials() {
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">
         Manage Materials
       </h2>
-
-      {/* Error Message Display */}
-      {errorMessage && (
-        <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-6">
-          {errorMessage}
-        </div>
-      )}
-
+      
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <div className="flex flex-1 gap-2 flex-wrap">
-          <div className="flex items-center bg-white rounded-xl px-4 py-2 border border-blue-300 w-full md:w-72">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search Here..."
-              className="flex-1 text-sm text-black focus:outline-none"
-            />
-            <img src={searchIcon} alt="Search" className="w-5 h-5" />
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
-              <img src={subjectIcon} alt="Subject" className="w-6 h-6" /> Subject
+        <div className="flex gap-2 flex-wrap">
+          {/* A-Z Filter */}
+          <div className="relative">
+            <button
+              onClick={() => setIsTitleDropdownOpen(!isTitleDropdownOpen)}
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap"
+            >
+              A-Z
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
-            <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
+            {isTitleDropdownOpen && (
+              <div
+                ref={titleDropdownRef}
+                className="absolute left-0 mt-2 w-32 bg-white rounded-lg shadow-lg z-20"
+              >
+                <button
+                  onClick={() => { setSortType("title_asc"); setIsTitleDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                >
+                  A-Z
+                </button>
+                <button
+                  onClick={() => { setSortType("title_desc"); setIsTitleDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                >
+                  Z-A
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Date Uploaded */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap"
+            >
               <img src={dateIcon} alt="Date" className="w-6 h-6" /> Date Uploaded
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
-            <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
+            {isDateDropdownOpen && (
+              <div
+                ref={dateDropdownRef}
+                className="absolute left-0 mt-2 w-32 bg-white rounded-lg shadow-lg z-20"
+              >
+                <button
+                  onClick={() => { setSortType("date_desc"); setIsDateDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                >
+                  Newest First
+                </button>
+                <button
+                  onClick={() => { setSortType("date_asc"); setIsDateDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                >
+                  Oldest First
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Language */}
+          <div className="relative">
+            <button
+              onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap"
+            >
               <img src={languageIcon} alt="Language" className="w-6 h-6" /> Language
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
+            {isLanguageDropdownOpen && (
+              <div
+                ref={languageDropdownRef}
+                className="absolute left-0 mt-2 w-32 bg-white rounded-lg shadow-lg z-20"
+              >
+                <button
+                  onClick={() => { setSelectedLanguage("All"); setIsLanguageDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => { setSelectedLanguage("English"); setIsLanguageDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                >
+                  English
+                </button>
+                <button
+                  onClick={() => { setSelectedLanguage("Filipino"); setIsLanguageDropdownOpen(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                >
+                  Filipino
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -969,6 +1094,29 @@ export default function LearningMaterials() {
 
               <div>
                 <label className="block text-red-500 text-sm mb-1">
+                  Language (required) <span className="text-gray-500">ⓘ</span>
+                </label>
+                <select
+                  value={resourceLanguage}
+                  onChange={(e) => {
+                    setResourceLanguage(e.target.value);
+                    setLanguageError("");
+                  }}
+                  className={`w-full px-5 py-2 border ${
+                    languageError ? "border-red-500" : "border-gray-300"
+                  } rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-300`}
+                >
+                  <option value="">Select Language</option>
+                  <option value="English">English</option>
+                  <option value="Filipino">Filipino</option>
+                </select>
+                {languageError && (
+                  <p className="text-red-500 text-sm mt-1">{languageError}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-red-500 text-sm mb-1">
                   Tags (required) <span className="text-gray-500">ⓘ</span>
                 </label>
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -1181,6 +1329,29 @@ export default function LearningMaterials() {
                   className="w-full px-5 py-2 border border-gray-300 rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-300 resize-y"
                   rows="4"
                 />
+              </div>
+
+              <div>
+                <label className="block text-red-500 text-sm mb-1">
+                  Language (required) <span className="text-gray-500">ⓘ</span>
+                </label>
+                <select
+                  value={editLanguage}
+                  onChange={(e) => {
+                    setEditLanguage(e.target.value);
+                    setLanguageError("");
+                  }}
+                  className={`w-full px-5 py-2 border ${
+                    languageError ? "border-red-500" : "border-gray-300"
+                  } rounded-xl text-sm text-gray-700 focus:outline-none focus:border-blue-300`}
+                >
+                  <option value="">Select Language</option>
+                  <option value="English">English</option>
+                  <option value="Filipino">Filipino</option>
+                </select>
+                {languageError && (
+                  <p className="text-red-500 text-sm mt-1">{languageError}</p>
+                )}
               </div>
 
               <div>
