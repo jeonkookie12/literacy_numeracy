@@ -11,6 +11,7 @@ import openInNewTabIcon from "../../assets/admin/open-in-new-tab.svg";
 import editIcon from "../../assets/admin/edit.svg";
 import downloadIcon from "../../assets/admin/download.svg";
 
+
 export default function LearningMaterials() {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,6 +46,13 @@ export default function LearningMaterials() {
   const [isTitleDropdownOpen, setIsTitleDropdownOpen] = useState(false);
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
+  const [sortTitleOrder, setSortTitleOrder] = useState("asc"); 
+  const [selectedDateLabel, setSelectedDateLabel] = useState("Date Uploaded");
+  const [selectedLanguageLabel, setSelectedLanguageLabel] = useState("All");
+  const [selectedDateRange, setSelectedDateRange] = useState("last7");   
+  const [showCustomRange, setShowCustomRange] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState("");  
+  const [customEndDate, setCustomEndDate] = useState("");     
 
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
@@ -345,6 +353,18 @@ export default function LearningMaterials() {
     }
   };
 
+  const resetFilters = () => {
+    setSortTitleOrder("asc");
+    setSortType("date_desc");
+    setSelectedDateLabel("Date Uploaded");
+    setSelectedDateRange("last7");      
+    setShowCustomRange(false);
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setSelectedLanguage("All");
+    setSelectedLanguageLabel("All");
+  };
+
   window.onbeforeunload = (event) => {
     if (
       resourceTitle.trim() ||
@@ -363,22 +383,52 @@ export default function LearningMaterials() {
   };
 
   const filteredResources = resources
-    .filter((resource) =>
-      resource.title.toLowerCase().includes(search.toLowerCase()) &&
-      (selectedLanguage === "All" || resource.language === selectedLanguage)
-    )
-    .sort((a, b) => {
-      if (sortType === "title_asc") {
-        return a.title.localeCompare(b.title);
-      } else if (sortType === "title_desc") {
-        return b.title.localeCompare(a.title);
-      } else if (sortType === "date_desc") {
-        return new Date(b.date_uploaded) - new Date(a.date_uploaded);
-      } else if (sortType === "date_asc") {
-        return new Date(a.date_uploaded) - new Date(b.date_uploaded);
-      }
-      return 0;
-    });
+  .filter((resource) => {
+    // ── Language ───────────────────────
+    if (selectedLanguage !== "All" && resource.language !== selectedLanguage) return false;
+
+    // ── Date range ─────────────────────
+    const uploadDate = new Date(resource.date_uploaded);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDateRange === "today") {
+      const resDay = new Date(uploadDate);
+      resDay.setHours(0, 0, 0, 0);
+      return resDay.getTime() === today.getTime();
+    }
+
+    if (selectedDateRange === "last7") {
+      const sevenAgo = new Date(today);
+      sevenAgo.setDate(today.getDate() - 7);
+      return uploadDate >= sevenAgo;
+    }
+
+    if (selectedDateRange === "last30") {
+      const thirtyAgo = new Date(today);
+      thirtyAgo.setDate(today.getDate() - 30);
+      return uploadDate >= thirtyAgo;
+    }
+
+    if (selectedDateRange === "custom" && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(customEndDate);
+      end.setHours(23, 59, 59, 999);
+      const resDay = new Date(uploadDate);
+      resDay.setHours(0, 0, 0, 0);
+      return resDay >= start && resDay <= end;
+    }
+
+    return true; // no date filter
+  })
+  .sort((a, b) => {
+    if (sortType === "title_asc") return a.title.localeCompare(b.title);
+    if (sortType === "title_desc") return b.title.localeCompare(a.title);
+    if (sortType === "date_desc") return new Date(b.date_uploaded) - new Date(a.date_uploaded);
+    if (sortType === "date_asc") return new Date(a.date_uploaded) - new Date(b.date_uploaded);
+    return 0;
+  });
 
   const handleViewResource = (resource) => {
     if (!resource || !resource.id) {
@@ -750,63 +800,111 @@ export default function LearningMaterials() {
       
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <div className="flex gap-2 flex-wrap">
-          {/* A-Z Filter */}
-          <div className="relative">
-            <button
-              onClick={() => setIsTitleDropdownOpen(!isTitleDropdownOpen)}
-              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap"
-            >
-              A-Z
-              <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
-            </button>
-            {isTitleDropdownOpen && (
-              <div
-                ref={titleDropdownRef}
-                className="absolute left-0 mt-2 w-32 bg-white rounded-lg shadow-lg z-20"
-              >
-                <button
-                  onClick={() => { setSortType("title_asc"); setIsTitleDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
-                >
-                  A-Z
-                </button>
-                <button
-                  onClick={() => { setSortType("title_desc"); setIsTitleDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
-                >
-                  Z-A
-                </button>
-              </div>
-            )}
-          </div>
+        <div className="flex gap-2 flex-wrap items-center">
+          {/* A-Z / Z-A toggle button */}
+          <button
+            onClick={() => {
+              const newOrder = sortTitleOrder === "asc" ? "desc" : "asc";
+              setSortTitleOrder(newOrder);
+              setSortType(`title_${newOrder}`);
+            }}
+            className="flex items-center justify-center bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9"
+          >
+            {sortTitleOrder === "asc" ? "A-Z" : "Z-A"}
+          </button>
 
           {/* Date Uploaded */}
           <div className="relative">
             <button
               onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap"
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9"
             >
-              <img src={dateIcon} alt="Date" className="w-6 h-6" /> Date Uploaded
+              <img src={dateIcon} alt="Date" className="w-6 h-6" />
+              {selectedDateLabel}
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
+
             {isDateDropdownOpen && (
               <div
                 ref={dateDropdownRef}
-                className="absolute left-0 mt-2 w-32 bg-white rounded-lg shadow-lg z-20"
+                className="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-lg z-20 p-3"
               >
-                <button
-                  onClick={() => { setSortType("date_desc"); setIsDateDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
-                >
-                  Newest First
-                </button>
-                <button
-                  onClick={() => { setSortType("date_asc"); setIsDateDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
-                >
-                  Oldest First
-                </button>
+                {/* Pre-defined ranges */}
+                {[
+                  { label: "Today", value: "today" },
+                  { label: "Last 7 days", value: "last7" },
+                  { label: "Last 30 days", value: "last30" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setSelectedDateRange(opt.value);
+                      setSelectedDateLabel(opt.label);
+                      setShowCustomRange(false);
+                      setCustomStartDate("");
+                      setCustomEndDate("");
+                      setSortType("date_desc");
+                      setIsDateDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+
+                {/* Custom range toggle */}
+                <div className="border-t mt-2 pt-2">
+                  <button
+                    onClick={() => setShowCustomRange(!showCustomRange)}
+                    className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded flex justify-between items-center"
+                  >
+                    Custom date range
+                    <span className="text-xs">{showCustomRange ? '▲' : '▼'}</span>
+                  </button>
+
+                  {showCustomRange && (
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Start Date</label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          max={new Date().toISOString().split("T")[0]}
+                          className="w-full px-3 py-1 text-sm border rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">End Date</label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          min={customStartDate}
+                          max={new Date().toISOString().split("T")[0]}
+                          className="w-full px-3 py-1 text-sm border rounded"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (customStartDate && customEndDate) {
+                            const start = new Date(customStartDate);
+                            const end = new Date(customEndDate);
+                            const fmt = (d) =>
+                              d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                            setSelectedDateRange("custom");
+                            setSelectedDateLabel(`${fmt(start)} - ${fmt(end)}`);
+                            setIsDateDropdownOpen(false);
+                          }
+                        }}
+                        disabled={!customStartDate || !customEndDate}
+                        className="w-full bg-blue-600 text-white text-xs py-1.5 rounded disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      >
+                        Apply Range
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -815,43 +913,55 @@ export default function LearningMaterials() {
           <div className="relative">
             <button
               onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
-              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap"
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9"
             >
-              <img src={languageIcon} alt="Language" className="w-6 h-6" /> Language
+              <img src={languageIcon} alt="Language" className="w-6 h-6" />
+              {selectedLanguageLabel}
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
             {isLanguageDropdownOpen && (
               <div
                 ref={languageDropdownRef}
-                className="absolute left-0 mt-2 w-32 bg-white rounded-lg shadow-lg z-20"
+                className="absolute left-0 mt-2 w-40 bg-white rounded-lg shadow-lg z-20"
               >
-                <button
-                  onClick={() => { setSelectedLanguage("All"); setIsLanguageDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => { setSelectedLanguage("English"); setIsLanguageDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
-                >
-                  English
-                </button>
-                <button
-                  onClick={() => { setSelectedLanguage("Filipino"); setIsLanguageDropdownOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
-                >
-                  Filipino
-                </button>
+                {[
+                  { label: "All", value: "All" },
+                  { label: "English", value: "English" },
+                  { label: "Filipino", value: "Filipino" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setSelectedLanguage(opt.value);
+                      setSelectedLanguageLabel(opt.label);
+                      setIsLanguageDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
+
+          {/* Reset Filters - Only show if any filter is active */}
+          {(sortTitleOrder !== "asc" || 
+            selectedDateLabel !== "Date Uploaded" || 
+            selectedLanguageLabel !== "All") && (
+            <button
+              onClick={resetFilters}
+              className="flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9 transition-colors"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleUploadClick}
-            className="flex items-center gap-1 bg-white border border-blue-300 px-4 py-2 rounded-xl text-sm"
+            className="flex items-center gap-1 bg-white border border-blue-300 px-4 py-2 rounded-xl text-sm h-9"
           >
             <img src={uploadIcon} alt="Upload" className="w-6 h-6" /> Upload Resources
           </button>
