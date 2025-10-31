@@ -10,6 +10,7 @@ import fileUploadIcon from "../../assets/admin/docu_up.svg";
 import writeIcon from "../../assets/admin/write.svg";
 import moreOptionsIcon from "../../assets/admin/more_options_vertical.svg";
 import warningIcon from "../../assets/admin/warning.svg";
+import fileIcon from "../../assets/admin/file.svg"; 
 
 export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, onValidate, validate }) {
   const [activityName, setActivityName] = useState(quizData.activityName || "");
@@ -27,7 +28,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
   const imageContainerRefs = useRef({});
   const fileInputRef = useRef(null);
   const selectorRef = useRef(null);
-  const prevValidationRef = useRef(null); // Store previous validation result
+  const prevValidationRef = useRef(null);
 
   useEffect(() => {
     if (showSelector && selectorRef.current && questions.length > 0) {
@@ -74,19 +75,16 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
     return () => observers.forEach((o) => o.disconnect());
   }, [questions]);
 
-  // Silent validation to keep onValidate up-to-date without showing errors
   useEffect(() => {
     const { globalErrors, questionErrors, isValid } = computeValidation();
     const currentValidation = JSON.stringify({ isValid, globalErrors, questionErrors });
 
-    // Only call onValidate if validation state has changed
     if (currentValidation !== prevValidationRef.current) {
       onValidate(isValid, { ...globalErrors, questionErrors });
       prevValidationRef.current = currentValidation;
     }
   }, [activityName, questions, onValidate, quizTypeLabel]);
 
-  // Triggered validation to show errors
   useEffect(() => {
     if (validate) {
       handleValidation();
@@ -153,16 +151,15 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
       }
       return newSet;
     });
-    // Reset validation status when opening settings
     setQuestionValidationStatus((prev) => ({
       ...prev,
       [qIndex]: false,
     }));
   };
 
-  const openImageModal = (qIndex, type, oIndex) => {
-    setShowImageModal(`${qIndex}-${type}${oIndex !== undefined ? `-${oIndex}` : ''}`);
-    setImageTarget({ qIndex, type, oIndex });
+  const openImageModal = (qIndex, type, oIndex = null, existingPath = null) => {
+    setImageTarget({ qIndex, type, oIndex, existingPath });
+    setShowImageModal(`${qIndex}-${type}${oIndex !== null ? `-${oIndex}` : ''}`);
     setIsUploading(false);
   };
 
@@ -200,13 +197,14 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
       
       setIsUploading(true);
 
-      if (imageTarget.type === 'question') {
-        setQuestions((prev) => {
-          const newQuestions = [...prev];
-          newQuestions[imageTarget.qIndex].imageFile = file;
-          
-          const previewUrl = URL.createObjectURL(file);
-          newQuestions[imageTarget.qIndex].image = previewUrl;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const updatedQuestions = [...questions];
+        const target = imageTarget;
+
+        if (target.type === 'question') {
+          updatedQuestions[target.qIndex].image = target.existingPath || reader.result;
+          updatedQuestions[target.qIndex].imageFile = file;
           
           const img = new Image();
           img.onload = () => {
@@ -218,32 +216,23 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
               width *= scale;
               height *= scale;
             }
-            setQuestions((prevQuestions) => {
-              const updatedQuestions = [...prevQuestions];
-              updatedQuestions[imageTarget.qIndex].imageDimensions = { width, height };
-              return updatedQuestions;
+            setQuestions((prev) => {
+              const updated = [...prev];
+              updated[target.qIndex].imageDimensions = { width, height };
+              return updated;
             });
           };
-          img.src = previewUrl;
-          
-          return newQuestions;
-        });
-      } else if (imageTarget.type === 'option' && imageTarget.oIndex !== undefined) {
-        setQuestions((prev) => {
-          const newQuestions = [...prev];
-          newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].imageFile = file;
-          
-          const previewUrl = URL.createObjectURL(file);
-          newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].image = previewUrl;
-          newQuestions[imageTarget.qIndex].options[imageTarget.oIndex].imageDimensions = { width: 100, height: 100 };
-          
-          return newQuestions;
-        });
-      }
-      
-      setTimeout(() => {
-        closeImageModal();
-      }, 1000);
+          img.src = target.existingPath || reader.result;
+        } else if (target.type === 'option' && target.oIndex !== null) {
+          updatedQuestions[target.qIndex].options[target.oIndex].image = target.existingPath || reader.result;
+          updatedQuestions[target.qIndex].options[target.oIndex].imageFile = file;
+          updatedQuestions[target.qIndex].options[target.oIndex].imageDimensions = { width: 100, height: 100 };
+        }
+
+        setQuestions(updatedQuestions);
+        setTimeout(() => closeImageModal(), 1000);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -376,7 +365,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
   };
 
   const changeQuestionImage = (qIndex) => {
-    openImageModal(qIndex, 'question');
+    openImageModal(qIndex, 'question', null, questions[qIndex].image);
     setOpenDropdownIndex(null);
   };
 
@@ -426,7 +415,6 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
 
   useEffect(() => {
     return () => {
-      // Clean up object URLs to prevent memory leaks
       questions.forEach((question) => {
         if (question.image && question.image.startsWith('blob:')) {
           URL.revokeObjectURL(question.image);
@@ -445,6 +433,13 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
   const renderQuestionBuilder = (question, qIndex) => {
     const hasValidationError = questionValidationStatus[qIndex] && (validationErrors.questionErrors?.[qIndex]?.correctAnswer || validationErrors.questionErrors?.[qIndex]?.points);
 
+    const getImageSrc = (path) => {
+      if (!path) return null;
+      return path.startsWith('data:') || path.startsWith('blob:') || path.startsWith('http')
+        ? path
+        : `http://localhost/literacynumeracy/admin${path}`;
+    };
+
     if (question.type === "Multiple Choice") {
       return (
         <div className="w-full max-w-3xl mx-auto flex flex-col gap-4 px-4">
@@ -452,32 +447,16 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
             {!openQuestionSettings.has(`${qIndex}`) && (
               <>
                 <div className="absolute right-3 top-3 flex gap-2">
-                  <button
-                    onClick={() => handleCopyQuestion(qIndex)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                    title="Duplicate Question"
-                  >
+                  <button onClick={() => handleCopyQuestion(qIndex)} className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer" title="Duplicate Question">
                     <img src={copyIcon} alt="Copy" className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleMoveQuestion(qIndex, -1)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                    title="Move Up"
-                  >
+                  <button onClick={() => handleMoveQuestion(qIndex, -1)} className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer" title="Move Up">
                     <img src={upIcon} alt="Up" className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleMoveQuestion(qIndex, 1)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                    title="Move Down"
-                  >
+                  <button onClick={() => handleMoveQuestion(qIndex, 1)} className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer" title="Move Down">
                     <img src={downIcon} alt="Down" className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleDeleteQuestion(qIndex)}
-                    className="text-red-500 hover:opacity-70 transition-opacity cursor-pointer"
-                    title="Delete Question"
-                  >
+                  <button onClick={() => handleDeleteQuestion(qIndex)} className="text-red-500 hover:opacity-70 transition-opacity cursor-pointer" title="Delete Question">
                     <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
                   </button>
                 </div>
@@ -498,7 +477,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                     onInput={(e) => autoResize(e.target)}
                   />
                   <button
-                    onClick={() => openImageModal(qIndex, 'question')}
+                    onClick={() => openImageModal(qIndex, 'question', null, question.image)}
                     className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
@@ -525,9 +504,10 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                     onClick={() => toggleResize(qIndex)}
                   >
                     <img
-                      src={question.image}
+                      src={getImageSrc(question.image)}
                       alt="Question image"
                       className="w-full h-full object-contain cursor-pointer"
+                      onError={(e) => { e.target.src = fileIcon; }}
                     />
                     <button
                       onClick={(e) => {
@@ -577,7 +557,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                         onInput={(e) => autoResize(e.target)}
                       />
                       <button
-                        onClick={() => openImageModal(qIndex, 'option', oIndex)}
+                        onClick={() => openImageModal(qIndex, 'option', oIndex, option.image)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:opacity-70 transition-opacity cursor-pointer hidden group-hover:block"
                         title="Add Image"
                       >
@@ -589,7 +569,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                         onClick={() => handleRemoveOption(qIndex, oIndex)}
                         className="text-red-500 hover:text-red-700 cursor-pointer"
                       >
-                        ✕
+                        X
                       </button>
                     )}
                     {option.image && (
@@ -606,9 +586,10 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                           }}
                         >
                           <img
-                            src={option.image}
+                            src={getImageSrc(option.image)}
                             alt={`Option ${oIndex + 1} image`}
                             className="w-full h-full object-contain"
+                            onError={(e) => { e.target.src = fileIcon; }}
                           />
                         </div>
                         <button
@@ -650,6 +631,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
               </>
             )}
 
+            {/* Settings Panel - Multiple Choice */}
             {openQuestionSettings.has(`${qIndex}`) && (
               <div className="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
                 <h4 className="font-semibold mb-2">Settings</h4>
@@ -658,7 +640,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                   <span className="inline-block">{question.text || "No question text entered"}</span>
                 </p>
                 {question.image && (
-                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs mb-4" />
+                  <img src={getImageSrc(question.image)} alt="Question image" className="mt-2 max-w-xs mb-4" onError={(e) => { e.target.src = fileIcon; }} />
                 )}
 
                 <div className="mb-4">
@@ -673,7 +655,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                       />
                       <span className="text-sm">{option.text || `Option ${oIndex + 1}`}</span>
                       {option.image && (
-                        <img src={option.image} alt={`Option ${oIndex + 1} image`} className="ml-2 w-16 h-16 object-contain" />
+                        <img src={getImageSrc(option.image)} alt={`Option ${oIndex + 1} image`} className="ml-2 w-16 h-16 object-contain" onError={(e) => { e.target.src = fileIcon; }} />
                       )}
                     </div>
                   ))}
@@ -724,32 +706,16 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
             {!openQuestionSettings.has(`${qIndex}`) && (
               <>
                 <div className="absolute right-3 top-3 flex gap-2">
-                  <button
-                    onClick={() => handleCopyQuestion(qIndex)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                    title="Duplicate Question"
-                  >
+                  <button onClick={() => handleCopyQuestion(qIndex)} className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer" title="Duplicate Question">
                     <img src={copyIcon} alt="Copy" className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleMoveQuestion(qIndex, -1)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                    title="Move Up"
-                  >
+                  <button onClick={() => handleMoveQuestion(qIndex, -1)} className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer" title="Move Up">
                     <img src={upIcon} alt="Up" className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleMoveQuestion(qIndex, 1)}
-                    className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer"
-                    title="Move Down"
-                  >
+                  <button onClick={() => handleMoveQuestion(qIndex, 1)} className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer" title="Move Down">
                     <img src={downIcon} alt="Down" className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleDeleteQuestion(qIndex)}
-                    className="text-red-500 hover:opacity-70 transition-opacity cursor-pointer"
-                    title="Delete Question"
-                  >
+                  <button onClick={() => handleDeleteQuestion(qIndex)} className="text-red-500 hover:opacity-70 transition-opacity cursor-pointer" title="Delete Question">
                     <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
                   </button>
                 </div>
@@ -770,7 +736,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                     onInput={(e) => autoResize(e.target)}
                   />
                   <button
-                    onClick={() => openImageModal(qIndex, 'question')}
+                    onClick={() => openImageModal(qIndex, 'question', null, question.image)}
                     className="text-gray-500 hover:opacity-70 transition-opacity cursor-pointer mt-2"
                     title="Add Image"
                   >
@@ -797,9 +763,10 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                     onClick={() => toggleResize(qIndex)}
                   >
                     <img
-                      src={question.image}
+                      src={getImageSrc(question.image)}
                       alt="Question image"
                       className="w-full h-full object-contain cursor-pointer"
+                      onError={(e) => { e.target.src = fileIcon; }}
                     />
                     <button
                       onClick={(e) => {
@@ -862,7 +829,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                   <span className="inline-block">{question.text || "No question text entered"}</span>
                 </p>
                 {question.image && (
-                  <img src={question.image} alt="Question image" className="mt-2 max-w-xs mb-4" />
+                  <img src={getImageSrc(question.image)} alt="Question image" className="mt-2 max-w-xs mb-4" onError={(e) => { e.target.src = fileIcon; }} />
                 )}
 
                 <div className="mb-4">
@@ -883,7 +850,7 @@ export default function QuizBuilder({ quizTypeLabel, quizData, updateQuizData, o
                       onClick={() => handleClearExpectedAnswer(qIndex)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 cursor-pointer"
                     >
-                      ✕
+                      X
                     </button>
                   </div>
                   {validationErrors.questionErrors?.[qIndex]?.correctAnswer && (
