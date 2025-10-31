@@ -19,6 +19,7 @@ export default function ActivityResources() {
   const [viewData, setViewData] = useState(null);
   const [editData, setEditData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [activities, setActivities] = useState([]);
 
   const [formData, setFormData] = useState({
     details: {
@@ -47,7 +48,23 @@ export default function ActivityResources() {
       .then(response => response.json())
       .then(data => {
         if (isMounted && data.success) {
-          setTagOptions(data.tags);
+          setTagOptions(data.tags.map(t => ({ ...t, id: Number(t.id) })));
+        }
+      })
+      .catch(console.error);
+    return () => { isMounted = false; };
+  }, []);
+
+  // Fetch activities list
+  useEffect(() => {
+    let isMounted = true;
+    fetch('http://localhost/literacynumeracy/admin/get_activities_list.php', {
+      credentials: 'include',
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (isMounted && data.success) {
+          setActivities(data.activities);
         }
       })
       .catch(console.error);
@@ -69,7 +86,9 @@ export default function ActivityResources() {
       });
       const json = await res.json();
       if (json.success) {
-        return json.data;
+        const fullData = json.data;
+        fullData.activityId = fullData.activityId || id;  // Fallback
+        return fullData;
       } else {
         alert(json.message || 'Failed to load activity');
         return null;
@@ -84,6 +103,12 @@ export default function ActivityResources() {
   };
 
   const openViewModal = async (id) => {
+    try {
+      const tagsRes = await fetch('http://localhost/literacynumeracy/admin/get_tags.php', { credentials: 'include' });
+      const tagsJson = await tagsRes.json();
+      if (tagsJson.success) setTagOptions(tagsJson.tags);
+    } catch (e) { console.error('Tags refresh failed:', e); }
+
     const data = await fetchActivity(id);
     if (data) {
       setViewData(data);
@@ -218,7 +243,6 @@ export default function ActivityResources() {
     formDataToSend.append('selectedActivities', JSON.stringify(formData.details.selectedActivities));
     formDataToSend.append('activities', JSON.stringify(formData.activities));
 
-    // Append files
     formData.details.selectedActivities.forEach((activityType, activityIndex) => {
       const activity = formData.activities[activityType];
       if (activity?.questions) {
@@ -261,6 +285,17 @@ export default function ActivityResources() {
           handleCloseCreateModal();
         }
         alert('Activity saved successfully!');
+        // Refresh activities list
+        fetch('http://localhost/literacynumeracy/admin/get_activities_list.php', {
+          credentials: 'include',
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              setActivities(data.activities);
+            }
+          })
+          .catch(console.error);
       } else {
         setErrorMessage(data.message || 'Failed to save activity');
       }
@@ -307,8 +342,18 @@ export default function ActivityResources() {
     }));
   };
 
-  // Mock activity list (replace with real fetch later)
-  const activities = Array(6).fill(null).map((_, i) => ({ id: i + 1 }));
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "Unknown date";
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const hours = Math.floor(diffMs / 3600000);
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
 
   return (
     <div className="min-h-screen p-10 text-black">
@@ -353,7 +398,7 @@ export default function ActivityResources() {
 
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {activities.map((act, i) => (
+          {activities.map((act) => (
             <div
               key={act.id}
               className="relative bg-white rounded-xl shadow p-4 flex flex-col text-xs h-38 cursor-pointer transition-colors duration-200 hover:bg-gray-100"
@@ -368,8 +413,8 @@ export default function ActivityResources() {
               </div>
               <div className="flex justify-between items-end w-full mt-2">
                 <div className="text-left">
-                  <p className="text-black font-medium">Activity {act.id}</p>
-                  <p className="text-gray-500">4 hours ago</p>
+                  <p className="text-black font-medium">{act.title}</p>
+                  <p className="text-gray-500">{formatDate(act.created_at)}</p>
                 </div>
                 <div className="more-options">
                   <button
@@ -401,7 +446,7 @@ export default function ActivityResources() {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (confirm("Delete this activity?")) {
-                            // TODO: delete
+                            // TODO: delete endpoint
                           }
                           setOpenDropdownId(null);
                         }}
@@ -438,70 +483,82 @@ export default function ActivityResources() {
             <hr className="border-gray-300" />
 
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-              {/* Stepper */}
-              <div className="w-full max-w-2xl mx-auto mb-6">
-                <div className="flex justify-between relative">
-                  {(() => {
-                    const steps = ["Details", ...viewData.details.selectedActivities, "Preview"];
-                    return steps.map((label, idx) => (
-                      <div key={label} className="flex flex-col items-center flex-1 relative">
-                        <span className="text-sm mb-2 text-gray-500">{label}</span>
-                        <div className="w-5 h-5 rounded-full z-10 flex items-center justify-center bg-blue-500">
-                          <CheckIcon className="w-4 h-4 text-white" />
-                        </div>
-                        {idx < steps.length - 1 && (
-                          <div className="absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 bg-blue-600" />
-                        )}
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              {/* Details */}
-              <div className="w-full max-w-3xl mx-auto space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800">Details</h2>
-                <p><strong>Title:</strong> {viewData.details.activityTitle}</p>
+              <div className="flex flex-col gap-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">Details</h2>
+                <p><strong>Title:</strong> {viewData.details.activityTitle || "N/A"}</p>
                 <p>
-                  <strong>Tags:</strong>{' '}
-                  {viewData.details.selectedTags
-                    .map(tid => tagOptions.find(t => t.id === tid)?.name || 'Unknown')
-                    .join(', ') || 'None'}
+                  <strong>Tags:</strong>{" "}
+                  {(() => {
+                    console.log('Debug - selectedTags:', viewData.details.selectedTags); 
+                    console.log('Debug - tagOptions:', tagOptions); 
+                    const tagNames = viewData.details.selectedTags
+                      .map(tagId => {
+                        const tag = tagOptions.find(t => t.id == tagId);  
+                        console.log(`Tag ID ${tagId} found:`, tag);
+                        return tag ? tag.name : `Unknown(${tagId})`;
+                      })
+                      .join(", ") || "None";
+                    return tagNames;
+                  })()}
                 </p>
-                <p><strong>Activities:</strong> {viewData.details.selectedActivities.join(', ')}</p>
+                <p><strong>Activities:</strong> {viewData.details.selectedActivities.join(", ") || "None"}</p>
               </div>
-
-              {/* Sections */}
-              {viewData.details.selectedActivities.map(type => {
-                const sec = viewData.activities[type];
-                return (
-                  <div key={type} className="w-full max-w-3xl mx-auto mt-8">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">{type}</h2>
-                    <div className="border border-gray-300 rounded-xl p-4 bg-white">
-                      <p className="font-medium mb-3">{sec.activityName}</p>
-                      {sec.questions.map((q, qIdx) => (
-                        <div key={qIdx} className="border-t pt-4 mt-4 first:border-0 first:pt-0 first:mt-0">
-                          <p className="font-medium">Question {qIdx + 1} ({q.type})</p>
-                          <p className="mt-1">{q.text}</p>
-                          {q.image && <img src={q.image} alt="Question" className="mt-2 max-w-xs rounded" />}
-                          {q.type === 'Multiple Choice' && (
-                            <ul className="list-disc pl-6 mt-2">
-                              {q.options.map((opt, oIdx) => (
-                                <li key={oIdx} className={q.correctIndex === oIdx ? 'font-bold text-blue-600' : ''}>
-                                  {opt.text}
-                                  {opt.image && <img src={opt.image} alt="Option" className="mt-1 w-20 inline-block ml-2" />}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                          {q.type === 'Answer' && <p className="mt-1"><strong>Expected:</strong> {q.expectedAnswer}</p>}
-                          <p className="mt-1"><strong>Points:</strong> {q.points}</p>
-                        </div>
-                      ))}
-                    </div>
+              {viewData.details.selectedActivities.map((type) => (
+                <div key={type} className="flex flex-col gap-4 mt-4">
+                  <h2 className="text-lg font-semibold text-gray-800 mb-2">{type}</h2>
+                  <p><strong>Name:</strong> {viewData.activities[type]?.activityName || "N/A"}</p>
+                  <div className="mt-2">
+                    <strong>Questions:</strong>
+                    {viewData.activities[type]?.questions?.length > 0 ? (
+                      <ul className="list-disc pl-5">
+                        {viewData.activities[type].questions.map((q, idx) => (
+                          <li key={idx} className="mt-2">
+                            <p><strong>Question {idx + 1} ({q.type}):</strong> {q.text}</p>
+                            {q.image && (
+                              <img
+                                src={`http://localhost/literacynumeracy/admin/${q.image}`}
+                                alt="Question image"
+                                className="mt-2 max-w-xs"
+                              />
+                            )}
+                            {q.type === "Multiple Choice" && (
+                              <div>
+                                <p><strong>Options:</strong></p>
+                                <ul className="list-circle pl-5">
+                                  {q.options.map((opt, oIdx) => (
+                                    <li key={oIdx}>
+                                      {opt.text} {q.correctIndex === oIdx ? "(Correct)" : ""}
+                                      {opt.image && (
+                                        <img
+                                          src={`http://localhost/literacynumeracy/admin/${opt.image}`}
+                                          alt={`Option ${oIdx + 1} image`}
+                                          className="mt-1 max-w-[100px]"
+                                        />
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                                <p><strong>Points:</strong> {q.points}</p>
+                              </div>
+                            )}
+                            {q.type === "Answer" && (
+                              <div>
+                                <p><strong>Expected Answer:</strong> {q.expectedAnswer}</p>
+                                <p><strong>Points:</strong> {q.points}</p>
+                              </div>
+                            )}
+                            {(q.type === "File Upload" || q.type === "Write") && (
+                              <p><strong>Points:</strong> {q.points}</p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No questions added.</p>
+                    )}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
 
             <hr className="border-gray-300" />
@@ -511,12 +568,6 @@ export default function ActivityResources() {
                 className="px-5 py-2 bg-blue-300 rounded-xl text-sm text-white hover:bg-blue-400"
               >
                 Edit
-              </button>
-              <button
-                onClick={closeViewModal}
-                className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300"
-              >
-                Close
               </button>
             </div>
           </div>
@@ -528,10 +579,8 @@ export default function ActivityResources() {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl w-full max-w-2xl h-[90vh] flex flex-col">
             <div className="flex justify-between items-center p-6 pb-4">
-              <h3 className="text-xl font-semibold text-gray-800 max-w-[80%] truncate">
-                {currentPage === 1
-                  ? isEditModalOpen ? "Edit Activity" : "Create Activity"
-                  : formData.details.activityTitle || "Activity"}
+              <h3 className="text-xl font-semibold text-gray-800">
+                {isEditModalOpen ? "Edit Activity" : "Create Activity"}
               </h3>
               <button
                 onClick={isEditModalOpen ? closeEditModal : handleCloseCreateModal}
@@ -545,35 +594,23 @@ export default function ActivityResources() {
             <hr className="border-gray-300" />
 
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-              {/* Stepper */}
               <div className="w-full max-w-2xl mx-auto mb-6">
                 <div className="flex justify-between relative">
                   {(() => {
-                    const steps = ["Details"];
-                    if (formData.details.selectedActivities.length === 0) {
-                      steps.push("..");
-                    } else {
-                      steps.push(...formData.details.selectedActivities, "Preview");
-                    }
-                    return steps.map((label, index) => {
-                      const stepNumber = index + 1;
-                      const isActive = currentPage === stepNumber;
-                      const isCompleted = completedSteps.includes(stepNumber);
+                    const steps = ["Details", ...formData.details.selectedActivities, "Preview"];
+                    return steps.map((label, idx) => {
+                      const stepNo = idx + 1;
+                      const isActive = currentPage === stepNo;
+                      const isCompleted = completedSteps.includes(stepNo);
                       return (
                         <div key={label} className="flex flex-col items-center flex-1 relative">
                           <span className={`text-sm mb-2 ${isActive ? "text-blue-600 font-medium" : "text-gray-500"}`}>
                             {label}
                           </span>
-                          <div className={`w-5 h-5 rounded-full z-10 flex items-center justify-center transition-all duration-300 ${
-                            isCompleted ? "bg-blue-500" : isActive ? "bg-blue-600 scale-110" : "bg-gray-400"
-                          }`}>
+                          <div className={`w-5 h-5 rounded-full z-10 flex items-center justify-center ${isCompleted || isActive ? "bg-blue-500" : "bg-gray-400"}`}>
                             {isCompleted && <CheckIcon className="w-4 h-4 text-white" />}
                           </div>
-                          {index < steps.length - 1 && (
-                            <div className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
-                              currentPage > stepNumber ? "bg-blue-600" : "bg-gray-300"
-                            }`} />
-                          )}
+                          {idx < steps.length - 1 && <div className="absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 bg-blue-600" />}
                         </div>
                       );
                     });
@@ -582,11 +619,10 @@ export default function ActivityResources() {
               </div>
 
               {errorMessage && (
-                <p className="text-red-500 text-sm mb-4 text-center">{errorMessage}</p>
+                <p className="text-red-500 text-sm mb-4">{errorMessage}</p>
               )}
 
-              <div className="w-full max-w-3xl mx-auto">
-                {/* Page 1: Details */}
+              <div className="flex flex-col gap-4">
                 {currentPage === 1 && (
                   <div className="flex flex-col gap-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">Details</h2>
@@ -608,42 +644,36 @@ export default function ActivityResources() {
                       />
                       {fieldErrors.title && <p className="text-red-500 text-sm mt-1">{fieldErrors.title}</p>}
                     </div>
-
-                    <div className="w-full">
-                      <label className="block text-gray-800 text-base mb-1">
-                        Select Activity <span className="text-red-500">*</span>
-                      </label>
-                      {["Pre-Test", "Activity", "Post-Test"].map((type) => (
-                        <div key={type} className="flex items-center mb-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.details.selectedActivities.includes(type)}
-                            onChange={() => toggleActivity(type)}
-                            className="mr-2 accent-blue-500"
-                          />
-                          {type}
-                        </div>
-                      ))}
-                      {fieldErrors.activities && <p className="text-red-500 text-sm mt-1">{fieldErrors.activities}</p>}
-                    </div>
-
                     <div className="w-full">
                       <label className="block text-gray-800 text-base mb-1">
                         Tags <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
+                        {/* Selected Tags Container */}
                         <div
                           onClick={() => setShowTagsDropdown(!showTagsDropdown)}
-                          className={`flex flex-wrap items-center gap-2 bg-white border rounded-xl px-3 py-2 cursor-pointer ${
+                          className={`min-h-10 flex flex-wrap gap-2 items-center bg-white border rounded-xl px-3 py-2 cursor-pointer ${
                             fieldErrors.tags ? "border-red-500" : "border-gray-300"
                           }`}
                         >
                           {formData.details.selectedTags.length > 0 ? (
                             formData.details.selectedTags.map((tagId) => {
-                              const tag = tagOptions.find(t => t.id === tagId);
+                              const tag = tagOptions.find(t => t.id == tagId);
                               return (
-                                <span key={tagId} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs">
-                                  {tag ? tag.name : 'Unknown'}
+                                <span
+                                  key={tagId}
+                                  className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs flex items-center gap-1"
+                                >
+                                  {tag ? tag.name : `Unknown (${tagId})`}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleTag(tagId);
+                                    }}
+                                    className="ml-1 text-blue-700 hover:text-blue-900"
+                                  >
+                                    ×
+                                  </button>
                                 </span>
                               );
                             })
@@ -653,6 +683,7 @@ export default function ActivityResources() {
                           <img src={dropdownIcon} alt="Dropdown" className="w-3 h-3 ml-auto" />
                         </div>
 
+                        {/* Dropdown */}
                         {showTagsDropdown && (
                           <div className="absolute z-20 w-full bg-white border border-gray-300 rounded-xl mt-1 shadow-md">
                             <div className="p-2 border-b border-gray-100">
@@ -689,10 +720,10 @@ export default function ActivityResources() {
                   </div>
                 )}
 
-                {/* Activity Pages */}
                 {formData.details.selectedActivities.map((type, index) => {
                   const pageNumber = 2 + index;
                   if (currentPage !== pageNumber) return null;
+
                   return (
                     <div key={type} className="flex flex-col gap-4">
                       <h2 className="text-lg font-semibold text-gray-800 mb-2">{type}</h2>
@@ -707,20 +738,27 @@ export default function ActivityResources() {
                   );
                 })}
 
-                {/* Preview */}
                 {currentPage === 2 + formData.details.selectedActivities.length && (
                   <div className="flex flex-col gap-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">Preview</h2>
+                    <p className="text-sm text-gray-500">
+                      Review your activity before publishing.
+                    </p>
                     <div className="border border-gray-300 rounded-xl p-4 bg-white">
                       <h3 className="text-base font-semibold mb-2">Details</h3>
-                      <p><strong>Title:</strong> {formData.details.activityTitle}</p>
-                      <p><strong>Tags:</strong> {formData.details.selectedTags.map(id => tagOptions.find(t => t.id === id)?.name).join(', ')}</p>
-                      <p><strong>Activities:</strong> {formData.details.selectedActivities.join(', ')}</p>
+                      <p><strong>Title:</strong> {formData.details.activityTitle || "N/A"}</p>
+                      <p>
+                        <strong>Tags:</strong>{" "}
+                        {formData.details.selectedTags
+                          .map(tagId => tagOptions.find(t => t.id == tagId)?.name || 'Unknown')
+                          .join(", ") || "None"}
+                      </p>
+                      <p><strong>Activities:</strong> {formData.details.selectedActivities.join(", ") || "None"}</p>
                     </div>
-                    {formData.details.selectedActivities.map(type => (
+                    {formData.details.selectedActivities.map((type) => (
                       <div key={type} className="border border-gray-300 rounded-xl p-4 bg-white mt-4">
                         <h3 className="text-base font-semibold mb-2">{type}</h3>
-                        <p><strong>Name:</strong> {formData.activities[type]?.activityName}</p>
+                        <p><strong>Name:</strong> {formData.activities[type]?.activityName || "N/A"}</p>
                         <div className="mt-2">
                           <strong>Questions:</strong>
                           {formData.activities[type]?.questions?.length > 0 ? (
@@ -728,24 +766,47 @@ export default function ActivityResources() {
                               {formData.activities[type].questions.map((q, idx) => (
                                 <li key={idx} className="mt-2">
                                   <p><strong>Question {idx + 1} ({q.type}):</strong> {q.text}</p>
-                                  {q.image && <img src={q.image} alt="" className="mt-2 max-w-xs" />}
-                                  {q.type === "Multiple Choice" && (
-                                    <ul className="list-circle pl-5">
-                                      {q.options.map((opt, oIdx) => (
-                                        <li key={oIdx}>
-                                          {opt.text} {q.correctIndex === oIdx ? "(Correct)" : ""}
-                                          {opt.image && <img src={opt.image} alt="" className="mt-1 max-w-[100px]" />}
-                                        </li>
-                                      ))}
-                                    </ul>
+                                  {q.image && (
+                                    <img
+                                      src={q.image}
+                                      alt="Question image"
+                                      className="mt-2 max-w-xs"
+                                    />
                                   )}
-                                  {q.type === "Answer" && <p><strong>Expected:</strong> {q.expectedAnswer}</p>}
-                                  <p><strong>Points:</strong> {q.points}</p>
+                                  {q.type === "Multiple Choice" && (
+                                    <div>
+                                      <p><strong>Options:</strong></p>
+                                      <ul className="list-circle pl-5">
+                                        {q.options.map((opt, oIdx) => (
+                                          <li key={oIdx}>
+                                            {opt.text} {q.correctIndex === oIdx ? "(Correct)" : ""}
+                                            {opt.image && (
+                                              <img
+                                                src={opt.image}
+                                                alt={`Option ${oIdx + 1} image`}
+                                                className="mt-1 max-w-[100px]"
+                                              />
+                                            )}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                      <p><strong>Points:</strong> {q.points}</p>
+                                    </div>
+                                  )}
+                                  {q.type === "Answer" && (
+                                    <div>
+                                      <p><strong>Expected Answer:</strong> {q.expectedAnswer}</p>
+                                      <p><strong>Points:</strong> {q.points}</p>
+                                    </div>
+                                  )}
+                                  {(q.type === "File Upload" || q.type === "Write") && (
+                                    <p><strong>Points:</strong> {q.points}</p>
+                                  )}
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p>No questions.</p>
+                            <p>No questions added.</p>
                           )}
                         </div>
                       </div>
@@ -758,19 +819,29 @@ export default function ActivityResources() {
             <hr className="border-gray-300" />
             <div className="flex justify-end gap-3 p-6 pt-4">
               {currentPage > 1 && (
-                <button onClick={handlePrevious} className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300">
+                <button
+                  onClick={handlePrevious}
+                  className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300"
+                >
                   Back
                 </button>
               )}
               <button
-                onClick={currentPage === (formData.details.selectedActivities.length > 0 ? 2 + formData.details.selectedActivities.length : 2)
-                  ? handleCreateActivity
-                  : handleNext
+                onClick={
+                  currentPage ===
+                  (formData.details.selectedActivities.length > 0
+                    ? 2 + formData.details.selectedActivities.length
+                    : 2)
+                    ? handleCreateActivity
+                    : handleNext
                 }
                 className="px-5 py-2 bg-blue-300 rounded-xl text-sm text-white hover:bg-blue-400"
               >
-                {currentPage === (formData.details.selectedActivities.length > 0 ? 2 + formData.details.selectedActivities.length : 2)
-                  ? (isEditModalOpen ? "Save Changes" : "Publish")
+                {currentPage ===
+                (formData.details.selectedActivities.length > 0
+                  ? 2 + formData.details.selectedActivities.length
+                  : 2)
+                  ? "Publish"
                   : "Next"}
               </button>
             </div>
