@@ -41,7 +41,7 @@ export default function ActivityResources() {
   const [triggerValidation, setTriggerValidation] = useState({});
 
   // Fixed filter states
-  const [sortType, setSortType] = useState("date_desc"); 
+  const [sortType, setSortType] = useState("title_asc"); 
   const [selectedDateRange, setSelectedDateRange] = useState("all");
   const [showCustomRange, setShowCustomRange] = useState(false);
   const [customStartDate, setCustomStartDate] = useState("");
@@ -501,12 +501,25 @@ export default function ActivityResources() {
       return 0;
     });
 
+    const resetFilters = () => {
+    setSearch("");
+    setSortType("title_asc");
+    setSelectedDateRange("all");
+    setSelectedDateLabel("Date Uploaded");
+    setShowCustomRange(false);  
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setSelectedActivityTypes([]);
+    setSelectedQuestionTypes([]);
+  };
+
   return (
         <div className="min-h-screen p-10 text-black">
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">Manage Activity Resources</h2>
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div className="flex flex-1 gap-2 flex-wrap">
+          {/* Search */}
           <div className="flex items-center bg-white rounded-xl px-4 py-2 border border-blue-300 w-full md:w-72">
             <input
               type="text"
@@ -517,7 +530,7 @@ export default function ActivityResources() {
             />
             <img src={searchIcon} alt="Search" className="w-5 h-5" />
           </div>
-          
+
           <button
             onClick={() => {
               const newOrder = sortType === "title_asc" ? "title_desc" : "title_asc";
@@ -532,7 +545,7 @@ export default function ActivityResources() {
           <div className="relative" ref={dateDropdownRef}>
             <button
               onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm"
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9"
             >
               <img src={dateIcon} alt="Date" className="w-6 h-6" /> {selectedDateLabel}
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
@@ -622,7 +635,7 @@ export default function ActivityResources() {
           <div className="relative" ref={activityTypeDropdownRef}>
             <button
               onClick={() => setIsActivityTypeOpen(!isActivityTypeOpen)}
-              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm"
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9"
             >
               <img src={subjectIcon} alt="Activity Type" className="w-6 h-6" />
               {selectedActivityTypes.length === 0 ? "Activity Types" : `${selectedActivityTypes.length} selected`}
@@ -649,7 +662,7 @@ export default function ActivityResources() {
           <div className="relative" ref={questionTypeDropdownRef}>
             <button
               onClick={() => setIsQuestionTypeOpen(!isQuestionTypeOpen)}
-              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm"
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9"
             >
               <img src={languageIcon} alt="Question Type" className="w-6 h-6" />
               {selectedQuestionTypes.length === 0 ? "Question Types" : `${selectedQuestionTypes.length} selected`}
@@ -671,6 +684,19 @@ export default function ActivityResources() {
               </div>
             )}
           </div>
+          {(
+            sortType !== "title_asc" ||
+            selectedDateLabel !== "Date Uploaded" ||
+            selectedActivityTypes.length > 0 ||
+            selectedQuestionTypes.length > 0
+          ) && (
+            <button
+              onClick={resetFilters}
+              className="flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9 transition-colors"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
         
         <div className="flex flex-wrap gap-2">
