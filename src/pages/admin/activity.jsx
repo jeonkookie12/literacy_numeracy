@@ -12,8 +12,14 @@ import QuizBuilder from "../../components/admin/quiz_maker";
 
 export default function ActivityResources() {
   const [search, setSearch] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewData, setViewData] = useState(null);
+  const [editData, setEditData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     details: {
       activityTitle: "",
@@ -30,25 +36,22 @@ export default function ActivityResources() {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [openDropdownId, setOpenDropdownId] = useState(null);
-  const [triggerValidation, setTriggerValidation] = useState({}); 
+  const [triggerValidation, setTriggerValidation] = useState({});
+
+  // Fetch tags
   useEffect(() => {
     let isMounted = true;
-    console.log('Fetching tags...');
     fetch('http://localhost/literacynumeracy/admin/get_tags.php', {
       credentials: 'include',
     })
       .then(response => response.json())
       .then(data => {
         if (isMounted && data.success) {
-          console.log('Tags fetched:', data.tags);
           setTagOptions(data.tags);
         }
       })
-      .catch(error => console.error('Error fetching tags:', error));
-    return () => {
-      isMounted = false;
-      console.log('ActivityResources unmounted');
-    };
+      .catch(console.error);
+    return () => { isMounted = false; };
   }, []);
 
   const filteredTags = useMemo(() => {
@@ -57,15 +60,65 @@ export default function ActivityResources() {
     );
   }, [tagOptions, searchTerm]);
 
-  const handleUploadClick = () => {
-    setIsModalOpen(true);
-    setCurrentPage(1);
-    setTriggerValidation({});
+  // Fetch activity for View/Edit
+  const fetchActivity = async (id) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`http://localhost/literacynumeracy/admin/get_activity.php?id=${id}`, {
+        credentials: 'include',
+      });
+      const json = await res.json();
+      if (json.success) {
+        return json.data;
+      } else {
+        alert(json.message || 'Failed to load activity');
+        return null;
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setCurrentPage(1);
+  const openViewModal = async (id) => {
+    const data = await fetchActivity(id);
+    if (data) {
+      setViewData(data);
+      setIsViewModalOpen(true);
+    }
+  };
+
+  const openEditFromView = () => {
+    setEditData(viewData);
+    setIsViewModalOpen(false);
+    setIsEditModalOpen(true);
+    // Initialize formData for edit
+    setFormData({
+      details: {
+        activityTitle: viewData.details.activityTitle,
+        selectedTags: viewData.details.selectedTags,
+        selectedActivities: viewData.details.selectedActivities,
+      },
+      activities: viewData.activities,
+      validation: {},
+    });
+  };
+
+  const closeViewModal = () => {
+    setIsViewModalOpen(false);
+    setViewData(null);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditData(null);
+    resetCreateForm();
+  };
+
+  const resetCreateForm = () => {
     setFormData({
       details: {
         activityTitle: "",
@@ -75,26 +128,33 @@ export default function ActivityResources() {
       activities: {},
       validation: {},
     });
+    setCurrentPage(1);
     setErrorMessage("");
     setCompletedSteps([]);
     setFieldErrors({});
     setTriggerValidation({});
   };
 
+  const handleUploadClick = () => {
+    setIsCreateModalOpen(true);
+    resetCreateForm();
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    resetCreateForm();
+  };
+
   const handleNext = () => {
-    const totalPages =
-      formData.details.selectedActivities.length > 0
-        ? 2 + formData.details.selectedActivities.length
-        : 2;
+    const totalPages = formData.details.selectedActivities.length > 0
+      ? 2 + formData.details.selectedActivities.length
+      : 2;
 
     if (currentPage === 1) {
       const newErrors = {};
-      if (!formData.details.activityTitle.trim())
-        newErrors.title = "Activity Title is required.";
-      if (formData.details.selectedTags.length === 0)
-        newErrors.tags = "Please select at least one tag.";
-      if (formData.details.selectedActivities.length === 0)
-        newErrors.activities = "Please select at least one activity type.";
+      if (!formData.details.activityTitle.trim()) newErrors.title = "Activity Title is required.";
+      if (formData.details.selectedTags.length === 0) newErrors.tags = "Please select at least one tag.";
+      if (formData.details.selectedActivities.length === 0) newErrors.activities = "Please select at least one activity type.";
       setFieldErrors(newErrors);
       if (Object.keys(newErrors).length > 0) {
         setErrorMessage("Please complete all required fields on this step.");
@@ -102,10 +162,9 @@ export default function ActivityResources() {
       }
     }
 
-    // Trigger validation for the current activity
     if (currentPage > 1 && currentPage <= formData.details.selectedActivities.length + 1) {
       const activityType = formData.details.selectedActivities[currentPage - 2];
-      setTriggerValidation((prev) => ({ ...prev, [activityType]: true }));
+      setTriggerValidation(prev => ({ ...prev, [activityType]: true }));
       const isValid = formData.validation[activityType]?.isValid;
       if (!isValid) {
         setErrorMessage(`Please complete all required fields for ${activityType}.`);
@@ -114,11 +173,9 @@ export default function ActivityResources() {
     }
 
     if (currentPage < totalPages) {
-      setCompletedSteps((prev) =>
-        prev.includes(currentPage) ? prev : [...prev, currentPage]
-      );
+      setCompletedSteps(prev => prev.includes(currentPage) ? prev : [...prev, currentPage]);
       setCurrentPage(currentPage + 1);
-      setTriggerValidation((prev) => {
+      setTriggerValidation(prev => {
         const newTriggers = { ...prev };
         delete newTriggers[formData.details.selectedActivities[currentPage - 2]];
         return newTriggers;
@@ -128,7 +185,7 @@ export default function ActivityResources() {
   };
 
   const handlePrevious = () => {
-    setCurrentPage((prev) => {
+    setCurrentPage(prev => {
       const updated = [...completedSteps];
       const idx = updated.indexOf(prev);
       if (idx !== -1) updated.splice(idx, 1);
@@ -136,25 +193,19 @@ export default function ActivityResources() {
       return prev - 1;
     });
     setErrorMessage("");
-    setTriggerValidation((prev) => {
-      const newTriggers = { ...prev };
-      delete newTriggers[formData.details.selectedActivities[currentPage - 2]];
-      return newTriggers;
-    });
   };
 
-  const handleCreateActivity = () => {
-    // Trigger validation for all activities
-    setTriggerValidation((prev) => {
+  const handleCreateActivity = async () => {
+    setTriggerValidation(prev => {
       const newTriggers = {};
-      formData.details.selectedActivities.forEach((type) => {
+      formData.details.selectedActivities.forEach(type => {
         newTriggers[type] = true;
       });
       return newTriggers;
     });
 
     const allValid = formData.details.selectedActivities.every(
-      (type) => formData.validation[type]?.isValid
+      type => formData.validation[type]?.isValid
     );
     if (!allValid) {
       setErrorMessage("Please complete all required fields for all activities before publishing.");
@@ -167,27 +218,20 @@ export default function ActivityResources() {
     formDataToSend.append('selectedActivities', JSON.stringify(formData.details.selectedActivities));
     formDataToSend.append('activities', JSON.stringify(formData.activities));
 
-    //console.log('FormData entries:');
-    for (let [key, value] of formDataToSend.entries()) {
-      console.log(key, value);
-    }
-
+    // Append files
     formData.details.selectedActivities.forEach((activityType, activityIndex) => {
       const activity = formData.activities[activityType];
       if (activity?.questions) {
         activity.questions.forEach((question, questionIndex) => {
           if (question.imageFile) {
-            console.log(`Adding question image: questions_${activityIndex}_${questionIndex}_image`, question.imageFile);
             formDataToSend.append(
               `questions_${activityIndex}_${questionIndex}_image`,
               question.imageFile
             );
           }
-          
           if (question.type === "Multiple Choice" && question.options) {
             question.options.forEach((option, optionIndex) => {
               if (option.imageFile) {
-                console.log(`Adding option image: questions_${activityIndex}_${questionIndex}_option_${optionIndex}_image`, option.imageFile);
                 formDataToSend.append(
                   `questions_${activityIndex}_${questionIndex}_option_${optionIndex}_image`,
                   option.imageFile
@@ -199,89 +243,76 @@ export default function ActivityResources() {
       }
     });
 
-    fetch('http://localhost/literacynumeracy/admin/create_activity.php', {
-      method: 'POST',
-      body: formDataToSend,
-      credentials: 'include',
-    })
-      .then(response => response.json())
-      .then(data => {
-//        console.log('Backend response:', data);
-        if (data.success) {
-          console.log('Activity created:', data);
-          handleCloseModal();
-        } else {
-          setErrorMessage(data.message || 'Failed to create activity');
-        }
-      })
-      .catch(error => {
-        console.error('Error creating activity:', error);
-        setErrorMessage('An error occurred while creating the activity');
+    const endpoint = isEditModalOpen
+      ? `http://localhost/literacynumeracy/admin/update_activity.php?id=${editData.activityId || ''}`
+      : 'http://localhost/literacynumeracy/admin/create_activity.php';
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: formDataToSend,
+        credentials: 'include',
       });
+      const data = await res.json();
+      if (data.success) {
+        if (isEditModalOpen) {
+          closeEditModal();
+        } else {
+          handleCloseCreateModal();
+        }
+        alert('Activity saved successfully!');
+      } else {
+        setErrorMessage(data.message || 'Failed to save activity');
+      }
+    } catch (err) {
+      setErrorMessage('Network error');
+    }
   };
 
   const toggleTag = (tagId) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       details: {
         ...prev.details,
         selectedTags: prev.details.selectedTags.includes(tagId)
-          ? prev.details.selectedTags.filter((t) => t !== tagId)
+          ? prev.details.selectedTags.filter(t => t !== tagId)
           : [...prev.details.selectedTags, tagId],
       },
     }));
   };
 
-  const toggleSelectAllTags = () => {
-    setFormData((prev) => ({
-      ...prev,
-      details: {
-        ...prev.details,
-        selectedTags:
-          prev.details.selectedTags.length === filteredTags.length
-            ? []
-            : filteredTags.map(tag => tag.id),
-      },
-    }));
-  };
-
   const toggleActivity = (activity) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       details: {
         ...prev.details,
         selectedActivities: prev.details.selectedActivities.includes(activity)
-          ? prev.details.selectedActivities.filter((a) => a !== activity)
+          ? prev.details.selectedActivities.filter(a => a !== activity)
           : [...prev.details.selectedActivities, activity],
       },
     }));
   };
 
   const updateActivityContent = (activityType, content) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      activities: {
-        ...prev.activities,
-        [activityType]: content,
-      },
+      activities: { ...prev.activities, [activityType]: content },
     }));
   };
 
   const handleActivityValidation = (activityType, isValid, errors) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      validation: {
-        ...prev.validation,
-        [activityType]: { isValid, errors },
-      },
+      validation: { ...prev.validation, [activityType]: { isValid, errors } },
     }));
   };
 
+  // Mock activity list (replace with real fetch later)
+  const activities = Array(6).fill(null).map((_, i) => ({ id: i + 1 }));
+
   return (
     <div className="min-h-screen p-10 text-black">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-        Manage Activity Resources
-      </h2>
+      <h2 className="text-2xl font-semibold text-gray-800 mb-6">Manage Activity Resources</h2>
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div className="flex flex-1 gap-2 flex-wrap">
@@ -322,13 +353,13 @@ export default function ActivityResources() {
 
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {[...Array(6)].map((_, i) => (
+          {activities.map((act, i) => (
             <div
-              key={i}
+              key={act.id}
               className="relative bg-white rounded-xl shadow p-4 flex flex-col text-xs h-38 cursor-pointer transition-colors duration-200 hover:bg-gray-100"
               onClick={(e) => {
                 if (!e.target.closest('.more-options')) {
-                  console.log(`View activity ${i + 1}`);
+                  openViewModal(act.id);
                 }
               }}
             >
@@ -337,32 +368,29 @@ export default function ActivityResources() {
               </div>
               <div className="flex justify-between items-end w-full mt-2">
                 <div className="text-left">
-                  <p className="text-black font-medium">Activity {i + 1}</p>
+                  <p className="text-black font-medium">Activity {act.id}</p>
                   <p className="text-gray-500">4 hours ago</p>
                 </div>
                 <div className="more-options">
                   <button
                     type="button"
-                    aria-label="Open more options"
                     className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setOpenDropdownId(openDropdownId === i ? null : i);
+                      setOpenDropdownId(openDropdownId === act.id ? null : act.id);
                     }}
                   >
                     <img src={moreOptionsIcon} alt="More Options" className="w-5 h-5" />
                   </button>
-                  {openDropdownId === i && (
+                  {openDropdownId === act.id && (
                     <div className="absolute right-0 bottom-10 mt-1 w-32 bg-white rounded-lg shadow-lg z-20">
                       <button
-                        type="button"
-                        aria-label={`Edit activity ${i + 1}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log(`Edit activity ${i + 1}`);
+                          openViewModal(act.id);
                           setOpenDropdownId(null);
                         }}
-                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 focus:outline-none"
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -370,17 +398,17 @@ export default function ActivityResources() {
                         Edit
                       </button>
                       <button
-                        type="button"
-                        aria-label={`Delete activity ${i + 1}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log(`Delete activity ${i + 1}`);
+                          if (confirm("Delete this activity?")) {
+                            // TODO: delete
+                          }
                           setOpenDropdownId(null);
                         }}
-                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 focus:outline-none"
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2.2 2.2 0 0116.138 21H7.862a2.2 2.2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1 " />
                         </svg>
                         Delete
                       </button>
@@ -393,37 +421,131 @@ export default function ActivityResources() {
         </div>
       </div>
 
-      {isModalOpen && (
+      {/* VIEW MODAL */}
+      {isViewModalOpen && viewData && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl w-full max-w-2xl h-[90vh] flex flex-col">
             <div className="flex justify-between items-center p-6 pb-4">
               <h3 className="text-xl font-semibold text-gray-800 max-w-[80%] truncate">
-                {currentPage === 1
-                  ? "Create Activity"
-                  : formData.details.activityTitle || "Activity/Test"}
+                {viewData.details.activityTitle}
               </h3>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+              <button onClick={closeViewModal} className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             <hr className="border-gray-300" />
 
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-[15px]">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {/* Stepper */}
+              <div className="w-full max-w-2xl mx-auto mb-6">
+                <div className="flex justify-between relative">
+                  {(() => {
+                    const steps = ["Details", ...viewData.details.selectedActivities, "Preview"];
+                    return steps.map((label, idx) => (
+                      <div key={label} className="flex flex-col items-center flex-1 relative">
+                        <span className="text-sm mb-2 text-gray-500">{label}</span>
+                        <div className="w-5 h-5 rounded-full z-10 flex items-center justify-center bg-blue-500">
+                          <CheckIcon className="w-4 h-4 text-white" />
+                        </div>
+                        {idx < steps.length - 1 && (
+                          <div className="absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 bg-blue-600" />
+                        )}
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+
+              {/* Details */}
+              <div className="w-full max-w-3xl mx-auto space-y-4">
+                <h2 className="text-lg font-semibold text-gray-800">Details</h2>
+                <p><strong>Title:</strong> {viewData.details.activityTitle}</p>
+                <p>
+                  <strong>Tags:</strong>{' '}
+                  {viewData.details.selectedTags
+                    .map(tid => tagOptions.find(t => t.id === tid)?.name || 'Unknown')
+                    .join(', ') || 'None'}
+                </p>
+                <p><strong>Activities:</strong> {viewData.details.selectedActivities.join(', ')}</p>
+              </div>
+
+              {/* Sections */}
+              {viewData.details.selectedActivities.map(type => {
+                const sec = viewData.activities[type];
+                return (
+                  <div key={type} className="w-full max-w-3xl mx-auto mt-8">
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">{type}</h2>
+                    <div className="border border-gray-300 rounded-xl p-4 bg-white">
+                      <p className="font-medium mb-3">{sec.activityName}</p>
+                      {sec.questions.map((q, qIdx) => (
+                        <div key={qIdx} className="border-t pt-4 mt-4 first:border-0 first:pt-0 first:mt-0">
+                          <p className="font-medium">Question {qIdx + 1} ({q.type})</p>
+                          <p className="mt-1">{q.text}</p>
+                          {q.image && <img src={q.image} alt="Question" className="mt-2 max-w-xs rounded" />}
+                          {q.type === 'Multiple Choice' && (
+                            <ul className="list-disc pl-6 mt-2">
+                              {q.options.map((opt, oIdx) => (
+                                <li key={oIdx} className={q.correctIndex === oIdx ? 'font-bold text-blue-600' : ''}>
+                                  {opt.text}
+                                  {opt.image && <img src={opt.image} alt="Option" className="mt-1 w-20 inline-block ml-2" />}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {q.type === 'Answer' && <p className="mt-1"><strong>Expected:</strong> {q.expectedAnswer}</p>}
+                          <p className="mt-1"><strong>Points:</strong> {q.points}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <hr className="border-gray-300" />
+            <div className="flex justify-end gap-3 p-6 pt-4">
+              <button
+                onClick={openEditFromView}
+                className="px-5 py-2 bg-blue-300 rounded-xl text-sm text-white hover:bg-blue-400"
+              >
+                Edit
+              </button>
+              <button
+                onClick={closeViewModal}
+                className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE / EDIT MODAL */}
+      {(isCreateModalOpen || isEditModalOpen) && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-2xl h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 pb-4">
+              <h3 className="text-xl font-semibold text-gray-800 max-w-[80%] truncate">
+                {currentPage === 1
+                  ? isEditModalOpen ? "Edit Activity" : "Create Activity"
+                  : formData.details.activityTitle || "Activity"}
+              </h3>
+              <button
+                onClick={isEditModalOpen ? closeEditModal : handleCloseCreateModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <hr className="border-gray-300" />
+
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {/* Stepper */}
               <div className="w-full max-w-2xl mx-auto mb-6">
                 <div className="flex justify-between relative">
                   {(() => {
@@ -433,45 +555,24 @@ export default function ActivityResources() {
                     } else {
                       steps.push(...formData.details.selectedActivities, "Preview");
                     }
-
                     return steps.map((label, index) => {
                       const stepNumber = index + 1;
                       const isActive = currentPage === stepNumber;
                       const isCompleted = completedSteps.includes(stepNumber);
-
                       return (
-                        <div
-                          key={label}
-                          className="flex flex-col items-center flex-1 relative"
-                        >
-                          <span
-                            className={`text-sm mb-2 ${
-                              isActive
-                                ? "text-blue-600 font-medium"
-                                : "text-gray-500"
-                            }`}
-                          >
+                        <div key={label} className="flex flex-col items-center flex-1 relative">
+                          <span className={`text-sm mb-2 ${isActive ? "text-blue-600 font-medium" : "text-gray-500"}`}>
                             {label}
                           </span>
-                          <div
-                            className={`w-5 h-5 rounded-full z-10 flex items-center justify-center transition-all duration-300 ${
-                              isCompleted
-                                ? "bg-blue-500"
-                                : isActive
-                                ? "bg-blue-600 scale-110"
-                                : "bg-gray-400"
-                            }`}
-                          >
+                          <div className={`w-5 h-5 rounded-full z-10 flex items-center justify-center transition-all duration-300 ${
+                            isCompleted ? "bg-blue-500" : isActive ? "bg-blue-600 scale-110" : "bg-gray-400"
+                          }`}>
                             {isCompleted && <CheckIcon className="w-4 h-4 text-white" />}
                           </div>
                           {index < steps.length - 1 && (
-                            <div
-                              className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
-                                currentPage > stepNumber
-                                  ? "bg-blue-600"
-                                  : "bg-gray-300"
-                              }`}
-                            />
+                            <div className={`absolute top-[80%] left-1/2 w-full h-[2px] -translate-y-1/2 ${
+                              currentPage > stepNumber ? "bg-blue-600" : "bg-gray-300"
+                            }`} />
                           )}
                         </div>
                       );
@@ -485,6 +586,7 @@ export default function ActivityResources() {
               )}
 
               <div className="w-full max-w-3xl mx-auto">
+                {/* Page 1: Details */}
                 {currentPage === 1 && (
                   <div className="flex flex-col gap-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">Details</h2>
@@ -495,24 +597,16 @@ export default function ActivityResources() {
                       <input
                         type="text"
                         value={formData.details.activityTitle}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            details: { ...prev.details, activityTitle: e.target.value },
-                          }))
-                        }
-                        placeholder="Add a title that describes your activity"
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          details: { ...prev.details, activityTitle: e.target.value },
+                        }))}
+                        placeholder="Add a title"
                         className={`w-full px-5 py-2 border rounded-xl text-base text-gray-700 focus:outline-none ${
-                          fieldErrors.title
-                            ? "border-red-500"
-                            : "border-gray-300 focus:border-blue-300"
+                          fieldErrors.title ? "border-red-500" : "border-gray-300 focus:border-blue-300"
                         }`}
                       />
-                      {fieldErrors.title && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {fieldErrors.title}
-                        </p>
-                      )}
+                      {fieldErrors.title && <p className="text-red-500 text-sm mt-1">{fieldErrors.title}</p>}
                     </div>
 
                     <div className="w-full">
@@ -523,7 +617,6 @@ export default function ActivityResources() {
                         <div key={type} className="flex items-center mb-2">
                           <input
                             type="checkbox"
-                            value={type}
                             checked={formData.details.selectedActivities.includes(type)}
                             onChange={() => toggleActivity(type)}
                             className="mr-2 accent-blue-500"
@@ -531,11 +624,7 @@ export default function ActivityResources() {
                           {type}
                         </div>
                       ))}
-                      {fieldErrors.activities && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {fieldErrors.activities}
-                        </p>
-                      )}
+                      {fieldErrors.activities && <p className="text-red-500 text-sm mt-1">{fieldErrors.activities}</p>}
                     </div>
 
                     <div className="w-full">
@@ -553,18 +642,13 @@ export default function ActivityResources() {
                             formData.details.selectedTags.map((tagId) => {
                               const tag = tagOptions.find(t => t.id === tagId);
                               return (
-                                <span
-                                  key={tagId}
-                                  className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
-                                >
+                                <span key={tagId} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs">
                                   {tag ? tag.name : 'Unknown'}
                                 </span>
                               );
                             })
                           ) : (
-                            <span className="text-gray-400 text-sm">
-                              Select tags...
-                            </span>
+                            <span className="text-gray-400 text-sm">Select tags...</span>
                           )}
                           <img src={dropdownIcon} alt="Dropdown" className="w-3 h-3 ml-auto" />
                         </div>
@@ -600,17 +684,15 @@ export default function ActivityResources() {
                           </div>
                         )}
                       </div>
-                      {fieldErrors.tags && (
-                        <p className="text-red-500 text-sm mt-1">{fieldErrors.tags}</p>
-                      )}
+                      {fieldErrors.tags && <p className="text-red-500 text-sm mt-1">{fieldErrors.tags}</p>}
                     </div>
                   </div>
                 )}
 
+                {/* Activity Pages */}
                 {formData.details.selectedActivities.map((type, index) => {
                   const pageNumber = 2 + index;
                   if (currentPage !== pageNumber) return null;
-
                   return (
                     <div key={type} className="flex flex-col gap-4">
                       <h2 className="text-lg font-semibold text-gray-800 mb-2">{type}</h2>
@@ -625,27 +707,20 @@ export default function ActivityResources() {
                   );
                 })}
 
+                {/* Preview */}
                 {currentPage === 2 + formData.details.selectedActivities.length && (
                   <div className="flex flex-col gap-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2">Preview</h2>
-                    <p className="text-sm text-gray-500">
-                      Review your activity before publishing.
-                    </p>
                     <div className="border border-gray-300 rounded-xl p-4 bg-white">
                       <h3 className="text-base font-semibold mb-2">Details</h3>
-                      <p><strong>Title:</strong> {formData.details.activityTitle || "N/A"}</p>
-                      <p>
-                        <strong>Tags:</strong>{" "}
-                        {formData.details.selectedTags
-                          .map(tagId => tagOptions.find(t => t.id === tagId)?.name || 'Unknown')
-                          .join(", ") || "None"}
-                      </p>
-                      <p><strong>Activities:</strong> {formData.details.selectedActivities.join(", ") || "None"}</p>
+                      <p><strong>Title:</strong> {formData.details.activityTitle}</p>
+                      <p><strong>Tags:</strong> {formData.details.selectedTags.map(id => tagOptions.find(t => t.id === id)?.name).join(', ')}</p>
+                      <p><strong>Activities:</strong> {formData.details.selectedActivities.join(', ')}</p>
                     </div>
-                    {formData.details.selectedActivities.map((type) => (
+                    {formData.details.selectedActivities.map(type => (
                       <div key={type} className="border border-gray-300 rounded-xl p-4 bg-white mt-4">
                         <h3 className="text-base font-semibold mb-2">{type}</h3>
-                        <p><strong>Name:</strong> {formData.activities[type]?.activityName || "N/A"}</p>
+                        <p><strong>Name:</strong> {formData.activities[type]?.activityName}</p>
                         <div className="mt-2">
                           <strong>Questions:</strong>
                           {formData.activities[type]?.questions?.length > 0 ? (
@@ -653,47 +728,24 @@ export default function ActivityResources() {
                               {formData.activities[type].questions.map((q, idx) => (
                                 <li key={idx} className="mt-2">
                                   <p><strong>Question {idx + 1} ({q.type}):</strong> {q.text}</p>
-                                  {q.image && (
-                                    <img
-                                      src={q.image}
-                                      alt="Question image"
-                                      className="mt-2 max-w-xs"
-                                    />
-                                  )}
+                                  {q.image && <img src={q.image} alt="" className="mt-2 max-w-xs" />}
                                   {q.type === "Multiple Choice" && (
-                                    <div>
-                                      <p><strong>Options:</strong></p>
-                                      <ul className="list-circle pl-5">
-                                        {q.options.map((opt, oIdx) => (
-                                          <li key={oIdx}>
-                                            {opt.text} {q.correctIndex === oIdx ? "(Correct)" : ""}
-                                            {opt.image && (
-                                              <img
-                                                src={opt.image}
-                                                alt={`Option ${oIdx + 1} image`}
-                                                className="mt-1 max-w-[100px]"
-                                              />
-                                            )}
-                                          </li>
-                                        ))}
-                                      </ul>
-                                      <p><strong>Points:</strong> {q.points}</p>
-                                    </div>
+                                    <ul className="list-circle pl-5">
+                                      {q.options.map((opt, oIdx) => (
+                                        <li key={oIdx}>
+                                          {opt.text} {q.correctIndex === oIdx ? "(Correct)" : ""}
+                                          {opt.image && <img src={opt.image} alt="" className="mt-1 max-w-[100px]" />}
+                                        </li>
+                                      ))}
+                                    </ul>
                                   )}
-                                  {q.type === "Answer" && (
-                                    <div>
-                                      <p><strong>Expected Answer:</strong> {q.expectedAnswer}</p>
-                                      <p><strong>Points:</strong> {q.points}</p>
-                                    </div>
-                                  )}
-                                  {(q.type === "File Upload" || q.type === "Write") && (
-                                    <p><strong>Points:</strong> {q.points}</p>
-                                  )}
+                                  {q.type === "Answer" && <p><strong>Expected:</strong> {q.expectedAnswer}</p>}
+                                  <p><strong>Points:</strong> {q.points}</p>
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p>No questions added.</p>
+                            <p>No questions.</p>
                           )}
                         </div>
                       </div>
@@ -706,29 +758,19 @@ export default function ActivityResources() {
             <hr className="border-gray-300" />
             <div className="flex justify-end gap-3 p-6 pt-4">
               {currentPage > 1 && (
-                <button
-                  onClick={handlePrevious}
-                  className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300"
-                >
+                <button onClick={handlePrevious} className="px-5 py-2 bg-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-300">
                   Back
                 </button>
               )}
               <button
-                onClick={
-                  currentPage ===
-                  (formData.details.selectedActivities.length > 0
-                    ? 2 + formData.details.selectedActivities.length
-                    : 2)
-                    ? handleCreateActivity
-                    : handleNext
+                onClick={currentPage === (formData.details.selectedActivities.length > 0 ? 2 + formData.details.selectedActivities.length : 2)
+                  ? handleCreateActivity
+                  : handleNext
                 }
                 className="px-5 py-2 bg-blue-300 rounded-xl text-sm text-white hover:bg-blue-400"
               >
-                {currentPage ===
-                (formData.details.selectedActivities.length > 0
-                  ? 2 + formData.details.selectedActivities.length
-                  : 2)
-                  ? "Publish"
+                {currentPage === (formData.details.selectedActivities.length > 0 ? 2 + formData.details.selectedActivities.length : 2)
+                  ? (isEditModalOpen ? "Save Changes" : "Publish")
                   : "Next"}
               </button>
             </div>
