@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { CheckIcon } from "@heroicons/react/24/outline";
 import subjectIcon from "../../assets/admin/subject.svg";
 import dateIcon from "../../assets/admin/date.svg";
@@ -30,6 +30,7 @@ export default function ActivityResources() {
     activities: {},
     validation: {},
   });
+
   const [errorMessage, setErrorMessage] = useState("");
   const [showTagsDropdown, setShowTagsDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,7 +40,48 @@ export default function ActivityResources() {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [triggerValidation, setTriggerValidation] = useState({});
 
-  // Fetch tags
+  // Fixed filter states
+  const [sortType, setSortType] = useState("date_desc"); 
+  const [selectedDateRange, setSelectedDateRange] = useState("all");
+  const [showCustomRange, setShowCustomRange] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const [selectedDateLabel, setSelectedDateLabel] = useState("Date Uploaded");
+  
+  // Activity Type filter (multi-select)
+  const [isActivityTypeOpen, setIsActivityTypeOpen] = useState(false);
+  const [selectedActivityTypes, setSelectedActivityTypes] = useState([]);
+  const activityTypes = ["Pre-Test", "Activity", "Post-Test"];
+  
+  // Question Type filter (multi-select)
+  const [isQuestionTypeOpen, setIsQuestionTypeOpen] = useState(false);
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
+  const questionTypes = ["Multiple Choice", "Answer", "File Upload", "Write"];
+
+  // Refs for dropdowns
+  const dateDropdownRef = useRef(null);
+  const activityTypeDropdownRef = useRef(null);
+  const questionTypeDropdownRef = useRef(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(event.target)) {
+        setIsDateDropdownOpen(false);
+      }
+      if (activityTypeDropdownRef.current && !activityTypeDropdownRef.current.contains(event.target)) {
+        setIsActivityTypeOpen(false);
+      }
+      if (questionTypeDropdownRef.current && !questionTypeDropdownRef.current.contains(event.target)) {
+        setIsQuestionTypeOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+    // Fetch tags
   useEffect(() => {
     let isMounted = true;
     fetch('http://localhost/literacynumeracy/admin/get_tags.php', {
@@ -76,6 +118,37 @@ export default function ActivityResources() {
       tag.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [tagOptions, searchTerm]);
+
+  // Activity Type filter handlers
+  const toggleActivityType = (type) => {
+    setSelectedActivityTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
+  // Question Type filter handlers
+  const toggleQuestionType = (type) => {
+    setSelectedQuestionTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
+  // Reset field errors when input becomes valid
+  useEffect(() => {
+    if (formData.details.activityTitle.trim() && fieldErrors.title) {
+      setFieldErrors(prev => ({ ...prev, title: "" }));
+    }
+    if (formData.details.selectedTags.length > 0 && fieldErrors.tags) {
+      setFieldErrors(prev => ({ ...prev, tags: "" }));
+    }
+    if (formData.details.selectedActivities.length > 0 && fieldErrors.activities) {
+      setFieldErrors(prev => ({ ...prev, activities: "" }));
+    }
+  }, [formData.details.activityTitle, formData.details.selectedTags, formData.details.selectedActivities, fieldErrors]);
 
   // Fetch activity for View/Edit
   const fetchActivity = async (id) => {
@@ -313,6 +386,7 @@ export default function ActivityResources() {
           : [...prev.details.selectedTags, tagId],
       },
     }));
+    setFieldErrors(prev => ({ ...prev, tags: prev.details.selectedTags.length > 0 ? "" : prev.tags }));
   };
 
   const toggleActivity = (activity) => {
@@ -325,6 +399,7 @@ export default function ActivityResources() {
           : [...prev.details.selectedActivities, activity],
       },
     }));
+    setFieldErrors(prev => ({ ...prev, activities: prev.details.selectedActivities.length > 0 ? "" : prev.activities }));
   };
 
   const updateActivityContent = (activityType, content) => {
@@ -369,8 +444,65 @@ export default function ActivityResources() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
+  const filteredActivities = activities
+    .filter((act) => {
+      if (search && !act.title.toLowerCase().includes(search.toLowerCase())) return false;
+
+      // Activity Type filter
+      if (selectedActivityTypes.length > 0 && !selectedActivityTypes.some(type => 
+        act.selectedActivities?.includes(type)
+      )) return false;
+
+      // Question Type filter
+      if (selectedQuestionTypes.length > 0 && !selectedQuestionTypes.some(type => 
+        act.questionTypes?.includes(type)
+      )) return false;
+
+      // Date filter (same as resources.jsx)
+      const uploadDate = new Date(act.created_at);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDateRange === "today") {
+        const resDay = new Date(uploadDate);
+        resDay.setHours(0, 0, 0, 0);
+        return resDay.getTime() === today.getTime();
+      }
+
+      if (selectedDateRange === "last7") {
+        const sevenAgo = new Date(today);
+        sevenAgo.setDate(today.getDate() - 7);
+        return uploadDate >= sevenAgo;
+      }
+
+      if (selectedDateRange === "last30") {
+        const thirtyAgo = new Date(today);
+        thirtyAgo.setDate(today.getDate() - 30);
+        return uploadDate >= thirtyAgo;
+      }
+
+      if (selectedDateRange === "custom" && customStartDate && customEndDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        const resDay = new Date(uploadDate);
+        resDay.setHours(0, 0, 0, 0);
+        return resDay >= start && resDay <= end;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortType === "title_asc") return a.title.localeCompare(b.title);
+      if (sortType === "title_desc") return b.title.localeCompare(a.title);
+      if (sortType === "date_desc") return new Date(b.created_at) - new Date(a.created_at);
+      if (sortType === "date_asc") return new Date(a.created_at) - new Date(b.created_at);
+      return 0;
+    });
+
   return (
-    <div className="min-h-screen p-10 text-black">
+        <div className="min-h-screen p-10 text-black">
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">Manage Activity Resources</h2>
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
@@ -385,21 +517,162 @@ export default function ActivityResources() {
             />
             <img src={searchIcon} alt="Search" className="w-5 h-5" />
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
-              <img src={subjectIcon} alt="Subject" className="w-6 h-6" /> Subject
+          
+          <button
+            onClick={() => {
+              const newOrder = sortType === "title_asc" ? "title_desc" : "title_asc";
+              setSortType(newOrder);
+            }}
+            className="flex items-center justify-center bg-blue-300 px-4 py-2 rounded-xl shadow text-sm whitespace-nowrap h-9"
+          >
+            {sortType === "title_asc" ? "A-Z" : "Z-A"}
+          </button>
+
+          {/* Date Uploaded Dropdown */}
+          <div className="relative" ref={dateDropdownRef}>
+            <button
+              onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm"
+            >
+              <img src={dateIcon} alt="Date" className="w-6 h-6" /> {selectedDateLabel}
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
-            <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
-              <img src={dateIcon} alt="Date" className="w-6 h-6" /> Date Uploaded
+            {isDateDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-lg z-20 p-3">
+                {[
+                  { label: "Today", value: "today" },
+                  { label: "Last 7 days", value: "last7" },
+                  { label: "Last 30 days", value: "last30" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setSelectedDateRange(opt.value);
+                      setSelectedDateLabel(opt.label);
+                      setShowCustomRange(false);
+                      setCustomStartDate("");
+                      setCustomEndDate("");
+                      setSortType("date_desc"); 
+                      setIsDateDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+
+                {/* Custom range toggle */}
+                <div className="border-t mt-2 pt-2">
+                  <button
+                    onClick={() => setShowCustomRange(!showCustomRange)}
+                    className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded flex justify-between items-center"
+                  >
+                    Custom date range
+                    <span className="text-xs">{showCustomRange ? '▲' : '▼'}</span>
+                  </button>
+
+                  {showCustomRange && (
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Start Date</label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          max={new Date().toISOString().split("T")[0]}
+                          className="w-full px-3 py-1 text-sm border rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">End Date</label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          min={customStartDate}
+                          max={new Date().toISOString().split("T")[0]}
+                          className="w-full px-3 py-1 text-sm border rounded"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (customStartDate && customEndDate) {
+                            const start = new Date(customStartDate);
+                            const end = new Date(customEndDate);
+                            const fmt = (d) =>
+                              d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                            setSelectedDateRange("custom");
+                            setSelectedDateLabel(`${fmt(start)} - ${fmt(end)}`);
+                            setIsDateDropdownOpen(false);
+                          }
+                        }}
+                        disabled={!customStartDate || !customEndDate}
+                        className="w-full bg-blue-600 text-white text-xs py-1.5 rounded disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      >
+                        Apply Range
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Activity Type Dropdown */}
+          <div className="relative" ref={activityTypeDropdownRef}>
+            <button
+              onClick={() => setIsActivityTypeOpen(!isActivityTypeOpen)}
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm"
+            >
+              <img src={subjectIcon} alt="Activity Type" className="w-6 h-6" />
+              {selectedActivityTypes.length === 0 ? "Activity Types" : `${selectedActivityTypes.length} selected`}
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
-            <button className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm">
-              <img src={languageIcon} alt="Language" className="w-6 h-6" /> Language
+            {isActivityTypeOpen && (
+              <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-20 p-2">
+                {activityTypes.map((type) => (
+                  <label key={type} className="flex items-center px-3 py-2 hover:bg-blue-50 rounded cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedActivityTypes.includes(type)}
+                      onChange={() => toggleActivityType(type)}
+                      className="mr-2 accent-blue-500"
+                    />
+                    <span className="text-sm">{type}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Question Type Dropdown */}
+          <div className="relative" ref={questionTypeDropdownRef}>
+            <button
+              onClick={() => setIsQuestionTypeOpen(!isQuestionTypeOpen)}
+              className="flex items-center gap-2 bg-blue-300 px-4 py-2 rounded-xl shadow text-sm"
+            >
+              <img src={languageIcon} alt="Question Type" className="w-6 h-6" />
+              {selectedQuestionTypes.length === 0 ? "Question Types" : `${selectedQuestionTypes.length} selected`}
               <img src={dropdownIcon} alt="Dropdown" className="w-2 h-2" />
             </button>
+            {isQuestionTypeOpen && (
+              <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-20 p-2">
+                {questionTypes.map((type) => (
+                  <label key={type} className="flex items-center px-3 py-2 hover:bg-blue-50 rounded cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedQuestionTypes.includes(type)}
+                      onChange={() => toggleQuestionType(type)}
+                      className="mr-2 accent-blue-500"
+                    />
+                    <span className="text-sm">{type}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+        
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleUploadClick}
@@ -412,7 +685,7 @@ export default function ActivityResources() {
 
       <div className="rounded-xl py-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {activities.map((act) => (
+          {filteredActivities.map((act) => (
             <div
               key={act.id}
               className="relative bg-white rounded-xl shadow p-4 flex flex-col text-xs h-38 cursor-pointer transition-colors duration-200 hover:bg-gray-100"
@@ -501,21 +774,11 @@ export default function ActivityResources() {
                 <h2 className="text-lg font-semibold text-gray-800 mb-2">Details</h2>
                 <p><strong>Title:</strong> {viewData.details.activityTitle || "N/A"}</p>
                 <p>
-                  <strong>Tags:</strong>{" "}
-                  {(() => {
-                    console.log('Debug - selectedTags:', viewData.details.selectedTags); 
-                    console.log('Debug - tagOptions:', tagOptions); 
-                    const tagNames = viewData.details.selectedTags
-                      .map(tagId => {
-                        const tag = tagOptions.find(t => t.id == tagId);  
-                        console.log(`Tag ID ${tagId} found:`, tag);
-                        return tag ? tag.name : `Unknown(${tagId})`;
-                      })
-                      .join(", ") || "None";
-                    return tagNames;
-                  })()}
+                  <strong>Tags:</strong>...
                 </p>
-                <p><strong>Activities:</strong> {viewData.details.selectedActivities.join(", ") || "None"}</p>
+                <p>
+                  <strong>Activities:</strong> {viewData.details.selectedActivities.join(", ") || "None"}
+                </p>
               </div>
               {viewData.details.selectedActivities.map((type) => (
                 <div key={type} className="flex flex-col gap-4 mt-4">
@@ -647,10 +910,13 @@ export default function ActivityResources() {
                       <input
                         type="text"
                         value={formData.details.activityTitle}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          details: { ...prev.details, activityTitle: e.target.value },
-                        }))}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            details: { ...prev.details, activityTitle: e.target.value },
+                          }));
+                          if (e.target.value.trim()) setFieldErrors(prev => ({ ...prev, title: "" }));
+                        }}
                         placeholder="Add a title"
                         className={`w-full px-5 py-2 border rounded-xl text-base text-gray-700 focus:outline-none ${
                           fieldErrors.title ? "border-red-500" : "border-gray-300 focus:border-blue-300"
