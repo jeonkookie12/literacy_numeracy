@@ -12,6 +12,7 @@ import editIcon from "../../assets/admin/edit.svg";
 import downloadIcon from "../../assets/admin/download.svg";
 
 
+
 export default function LearningMaterials() {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -801,6 +802,16 @@ export default function LearningMaterials() {
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex items-center bg-white rounded-xl px-4 py-2 border border-blue-300 w-full md:w-72">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search Here..."
+              className="flex-1 text-sm text-black focus:outline-none"
+            />
+            <img src={searchIcon} alt="Search" className="w-5 h-5" />
+          </div>
           {/* A-Z / Z-A toggle button */}
           <button
             onClick={() => {

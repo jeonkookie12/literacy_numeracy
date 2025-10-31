@@ -284,7 +284,6 @@ export default function ActivityResources() {
         } else {
           handleCloseCreateModal();
         }
-        alert('Activity saved successfully!');
         // Refresh activities list
         fetch('http://localhost/literacynumeracy/admin/get_activities_list.php', {
           credentials: 'include',
@@ -344,14 +343,29 @@ export default function ActivityResources() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "Unknown date";
+
     const date = new Date(dateStr);
     const now = new Date();
     const diffMs = now - date;
-    const hours = Math.floor(diffMs / 3600000);
-    if (hours < 1) return "Just now";
-    if (hours < 24) return `${hours} hours ago`;
+
+    const seconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days} days ago`;
+
+    if (seconds < 60) {
+      return "Just now";
+    }
+    if (minutes < 60) {
+      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    }
+    if (hours < 24) {
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    }
+    if (days < 7) {
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
@@ -644,6 +658,25 @@ export default function ActivityResources() {
                       />
                       {fieldErrors.title && <p className="text-red-500 text-sm mt-1">{fieldErrors.title}</p>}
                     </div>
+
+                    <div className="w-full">
+                      <label className="block text-gray-800 text-base mb-1">
+                        Select Activity <span className="text-red-500">*</span>
+                      </label>
+                      {["Pre-Test", "Activity", "Post-Test"].map((type) => (
+                        <div key={type} className="flex items-center mb-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.details.selectedActivities.includes(type)}
+                            onChange={() => toggleActivity(type)}
+                            className="mr-2 accent-blue-500"
+                          />
+                          {type}
+                        </div>
+                      ))}
+                      {fieldErrors.activities && <p className="text-red-500 text-sm mt-1">{fieldErrors.activities}</p>}
+                    </div>
+
                     <div className="w-full">
                       <label className="block text-gray-800 text-base mb-1">
                         Tags <span className="text-red-500">*</span>
